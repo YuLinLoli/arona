@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 Quartz 定时任务注册与调度。
+ * 具体职责：围绕 QuartzProvider 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.quartz
 
 import kotlinx.coroutines.Dispatchers
@@ -10,6 +14,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Calendar
 
+// 中文说明：定义 QuartzProvider 对象，集中提供本文件的共享功能。
 object QuartzProvider: BaseFunctionProvider(Dispatchers.IO) {
 
   private val quartzScheduler: Scheduler = StdSchedulerFactory.getDefaultScheduler().also { it.start() }

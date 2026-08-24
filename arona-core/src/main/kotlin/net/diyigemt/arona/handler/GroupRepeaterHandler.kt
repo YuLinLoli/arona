@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 Mirai 事件监听与消息处理器。
+ * 具体职责：围绕 GroupRepeaterHandler 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.handler
 
 import net.diyigemt.arona.config.AronaRepeatConfig
@@ -5,6 +9,7 @@ import net.diyigemt.arona.service.AronaGroupService
 import net.mamoe.mirai.event.events.GroupMessageEvent
 
 // 复读
+// 中文说明：定义 GroupRepeaterHandler 对象，集中提供本文件的共享功能。
 object GroupRepeaterHandler: AronaEventHandler<GroupMessageEvent>, AronaGroupService {
   private val map = mutableMapOf<Long, Triple<String, Long, Int>>() // 群 -> 上次消息, 上次发送者, 次数
   override suspend fun handle(event: GroupMessageEvent) {

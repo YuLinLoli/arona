@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 运行时增强功能与后台推送任务。
+ * 具体职责：围绕 AronaRemoteActionChecker 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.advance
 
 import net.diyigemt.arona.Arona
@@ -14,6 +18,7 @@ import org.quartz.Job
 import org.quartz.JobExecutionContext
 import org.quartz.JobKey
 
+// 中文说明：定义 AronaRemoteActionChecker 对象，集中提供本文件的共享功能。
 object AronaRemoteActionChecker : AronaQuartzService {
   private const val AronaRemoteActionCheckJobKey = "AronaAnnouncementCheck"
   override var jobKey: JobKey? = null
@@ -58,6 +63,7 @@ object AronaRemoteActionChecker : AronaQuartzService {
 }
 
 @kotlinx.serialization.Serializable
+// 中文说明：定义 RemoteActionItem 类型，用于封装本模块的数据或处理行为。
 data class RemoteActionItem(
   val id: Long,
   val action: String,

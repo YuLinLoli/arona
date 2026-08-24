@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 GachaConfigCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import kotlinx.serialization.InternalSerializationApi
@@ -27,6 +31,7 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.select
 import net.diyigemt.arona.db.gacha.GachaCharacter as GC
 
+// 中文说明：定义 GachaConfigCommand 对象，集中提供本文件的共享功能。
 object GachaConfigCommand : CompositeCommand(
   Arona,"gacha", "抽卡",
   description = "设置发情触发的关键词"

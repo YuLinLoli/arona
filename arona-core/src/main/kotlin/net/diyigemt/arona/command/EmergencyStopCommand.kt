@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 EmergencyStopCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import net.diyigemt.arona.Arona
@@ -12,6 +16,7 @@ import net.mamoe.mirai.console.command.descriptor.ExperimentalCommandDescriptors
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import java.util.*
 
+// 中文说明：定义 EmergencyStopCommand 对象，集中提供本文件的共享功能。
 object EmergencyStopCommand : SimpleCommand(
   Arona,"emergency_stop", "紧急停止",
   description = "非管理员投票制停止服务"

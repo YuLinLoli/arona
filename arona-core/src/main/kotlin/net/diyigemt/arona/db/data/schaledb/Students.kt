@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 数据库表结构、实体和数据访问逻辑。
+ * 具体职责：围绕 Students 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.db.data.schaledb
 
 import org.jetbrains.exposed.sql.Column

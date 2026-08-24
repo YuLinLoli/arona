@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 测试代码，用于验证相关模块的行为和边界情况。
+ * 具体职责：围绕 TestFetchNGA 提供对应的实现、数据结构或测试。
+ */
 package org.example.mirai.plugin.command
 
 import okhttp3.*
@@ -7,6 +11,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.*
 
+// 中文说明：定义 TestFetchNGA 对象，集中提供本文件的共享功能。
 object TestFetchNGA {
 
   val imageSrcBaseAddr = "https://img.nga.178.com/attachments/"

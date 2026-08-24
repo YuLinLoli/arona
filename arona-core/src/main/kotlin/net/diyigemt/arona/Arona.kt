@@ -6,6 +6,10 @@
  *
  *  https://github.com/diyigemt/arona/blob/master/LICENSE
  */
+/**
+ * 文件说明：本文件属于 插件入口及核心初始化逻辑。
+ * 具体职责：围绕 Arona 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona
 
 import kotlinx.coroutines.async
@@ -47,6 +51,7 @@ import net.mamoe.mirai.utils.info
 import java.io.File
 import kotlin.io.path.absolutePathString
 
+// 中文说明：定义 Arona 对象，集中提供本文件的共享功能。
 object Arona : KotlinPlugin(
   JvmPluginDescription(
     id = BuildConfig.id,

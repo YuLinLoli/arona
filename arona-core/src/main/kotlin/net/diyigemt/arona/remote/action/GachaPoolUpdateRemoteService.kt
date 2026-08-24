@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 远程服务调用与服务管理。
+ * 具体职责：围绕 GachaPoolUpdateRemoteService 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.remote.action
 
 import kotlinx.serialization.Serializable
@@ -15,6 +19,7 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import net.diyigemt.arona.db.gacha.GachaCharacter as GC
 
+// 中文说明：定义 GachaPoolUpdateRemoteService 类型，用于封装本模块的数据或处理行为。
 class GachaPoolUpdateRemoteService : RemoteService<GachaPoolUpdateData> {
   //  override val kType: KType = List::class.createType(listOf(KTypeProjection.invariant(AnnouncementItem::class.starProjectedType)))
   override val kType: KType = GachaPoolUpdateData::class.createType()
@@ -38,6 +43,7 @@ class GachaPoolUpdateRemoteService : RemoteService<GachaPoolUpdateData> {
 }
 
 @Serializable
+// 中文说明：定义 GachaCharacter 类型，用于封装本模块的数据或处理行为。
 data class GachaCharacter(
   val name: String,
   val star: Int,
@@ -45,6 +51,7 @@ data class GachaCharacter(
 )
 
 @Serializable
+// 中文说明：定义 GachaPoolUpdateData 类型，用于封装本模块的数据或处理行为。
 data class GachaPoolUpdateData(
   val name: String,
   val character: List<GachaCharacter>

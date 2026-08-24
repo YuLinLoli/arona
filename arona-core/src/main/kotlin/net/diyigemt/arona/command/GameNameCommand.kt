@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 GameNameCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import net.diyigemt.arona.Arona
@@ -11,6 +15,7 @@ import net.mamoe.mirai.console.command.SimpleCommand
 import net.mamoe.mirai.console.command.UserCommandSender
 import net.mamoe.mirai.contact.User
 
+// 中文说明：定义 GameNameCommand 对象，集中提供本文件的共享功能。
 object GameNameCommand : SimpleCommand(
   Arona,"game_name", "游戏名",
   description = "记录游戏名与群名的对应关系"

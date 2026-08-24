@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 HentaiConfigCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import net.diyigemt.arona.Arona
@@ -10,6 +14,7 @@ import net.mamoe.mirai.console.command.UserCommandSender
 import net.mamoe.mirai.contact.Member
 import net.mamoe.mirai.contact.remarkOrNameCardOrNick
 
+// 中文说明：定义 HentaiConfigCommand 对象，集中提供本文件的共享功能。
 object HentaiConfigCommand : CompositeCommand(
   Arona,"hentai", "发情",
   description = "设置发情触发的关键词"

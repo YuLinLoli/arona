@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 ActivityCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import net.diyigemt.arona.Arona
@@ -11,6 +15,7 @@ import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.Contact.Companion.uploadImage
 
+// 中文说明：定义 ActivityCommand 对象，集中提供本文件的共享功能。
 object ActivityCommand : SimpleCommand(
   Arona,"active", "活动",
   description = "通过wiki获取活动列表"

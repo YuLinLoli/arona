@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 测试代码，用于验证相关模块的行为和边界情况。
+ * 具体职责：围绕 TestActivityNotify 提供对应的实现、数据结构或测试。
+ */
 package org.example.mirai.plugin.quartz
 
 import net.diyigemt.arona.entity.Activity
@@ -6,6 +10,7 @@ import org.junit.jupiter.api.Test
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
+// 中文说明：定义 TestActivityNotify 类型，用于封装本模块的数据或处理行为。
 class TestActivityNotify {
 
   fun testA() {

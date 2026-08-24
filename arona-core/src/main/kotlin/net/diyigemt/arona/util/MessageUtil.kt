@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 通用工具、网络、图片和业务辅助函数。
+ * 具体职责：围绕 MessageUtil 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.util
 
 import net.diyigemt.arona.Arona
@@ -9,6 +13,7 @@ import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.MessageChain
 import net.mamoe.mirai.message.data.MessageChainBuilder
 
+// 中文说明：定义 MessageUtil 对象，集中提供本文件的共享功能。
 object MessageUtil {
 
   fun at(user: User, msg: MessageChain): MessageChain {

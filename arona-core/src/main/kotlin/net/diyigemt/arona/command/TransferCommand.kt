@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 TransferCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import net.diyigemt.arona.Arona
@@ -9,6 +13,7 @@ import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.message.data.ForwardMessageBuilder
 
+// 中文说明：定义 TransferCommand 对象，集中提供本文件的共享功能。
 object TransferCommand : SimpleCommand(
   Arona,"transfer", "转发",
   description = "合并转发一段时间内的内容"

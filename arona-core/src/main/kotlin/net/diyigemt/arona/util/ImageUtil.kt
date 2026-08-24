@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 通用工具、网络、图片和业务辅助函数。
+ * 具体职责：围绕 ImageUtil 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.util
 import net.diyigemt.arona.Arona
 import net.diyigemt.arona.interfaces.InitializedFunction
@@ -8,6 +12,7 @@ import java.awt.image.BufferedImage
 import java.io.File
 import kotlin.math.max
 
+// 中文说明：定义 ImageUtil 对象，集中提供本文件的共享功能。
 object ImageUtil : InitializedFunction() {
 
   private const val DEFAULT_PADDING: Int = 10

@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 数据库表结构、实体和数据访问逻辑。
+ * 具体职责：围绕 GachaLimitTable 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.db.gacha
 
 import net.diyigemt.arona.config.AronaGachaConfig
@@ -40,6 +44,7 @@ object GachaLimitTable: IdTable<Long>(name = "GachaLimit") {
   }
 }
 
+// 中文说明：定义 GachaLimit 类型，用于封装本模块的数据或处理行为。
 class GachaLimit(id: EntityID<Long>): LongEntity(id) {
   companion object: LongEntityClass<GachaLimit>(GachaLimitTable)
   var group by GachaLimitTable.group

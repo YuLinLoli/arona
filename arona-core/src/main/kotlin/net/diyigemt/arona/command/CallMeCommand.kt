@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 CallMeCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import net.diyigemt.arona.Arona
@@ -14,6 +18,7 @@ import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.contact.User
 import org.jetbrains.exposed.sql.and
 
+// 中文说明：定义 CallMeCommand 对象，集中提供本文件的共享功能。
 object CallMeCommand : SimpleCommand(
   Arona,"call_me", "叫我",
   description = "给自己自定义昵称"

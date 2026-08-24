@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 GachaMultiCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import net.diyigemt.arona.Arona
@@ -16,6 +20,7 @@ import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.MemberCommandSenderOnMessage
 import net.mamoe.mirai.console.command.SimpleCommand
 
+// 中文说明：定义 GachaMultiCommand 对象，集中提供本文件的共享功能。
 object GachaMultiCommand : SimpleCommand(
   Arona,"gacha_multi", "十连",
   description = "模拟十连"

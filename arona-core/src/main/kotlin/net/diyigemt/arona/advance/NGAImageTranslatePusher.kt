@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 运行时增强功能与后台推送任务。
+ * 具体职责：围绕 NGAImageTranslatePusher 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.advance
 
 import net.diyigemt.arona.Arona
@@ -14,9 +18,11 @@ import org.jsoup.Jsoup
 import org.quartz.Job
 import org.quartz.JobExecutionContext
 import org.quartz.JobKey
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.*
 
+// 中文说明：定义 NGAImageTranslatePusher 对象，集中提供本文件的共享功能。
 object NGAImageTranslatePusher : AronaQuartzService {
   private const val ImageTranslateCheckJobKey = "ImageTranslateCheck"
   private const val ImageSrcBaseAddress = "https://img.nga.178.com/attachments/"
@@ -30,6 +36,7 @@ object NGAImageTranslatePusher : AronaQuartzService {
   private const val ImageRegex =
     "\\[img][.]/([\\w/-]+)[.](jpg|png|JPG|PNG)([.](medium|large|small|thumb|thumb_s|thumb_ss)[.](jpg|png|JPG|PNG))?\\[/img]"
   private const val maxCache: Int = 3
+  private const val MaxImageSize = 10 * 1024 * 1024
   override var jobKey: JobKey? = null
   override val id: Int = 13
   override val name: String = "nga图楼推送"
@@ -62,7 +69,7 @@ object NGAImageTranslatePusher : AronaQuartzService {
       pending.map { floor ->
         val imageExternalResource = floor.images.mapNotNull {
           fetchImageFromNGA(it)?.use { stream ->
-            stream.readAllBytes()
+            stream.readBytesWithLimit(MaxImageSize)
           }
         }
         val userName = NGAPushConfig.watch[floor.uid]
@@ -170,6 +177,19 @@ object NGAImageTranslatePusher : AronaQuartzService {
         .connect("${ImageSrcBaseAddress}${href}")
         .cookies(cookies)
     ).execute().bodyStream()
+  }
+
+  private fun InputStream.readBytesWithLimit(maxSize: Int): ByteArray? {
+    val output = ByteArrayOutputStream()
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    var totalSize = 0
+    while (true) {
+      val readSize = read(buffer)
+      if (readSize < 0) return output.toByteArray()
+      totalSize += readSize
+      if (totalSize > maxSize) return null
+      output.write(buffer, 0, readSize)
+    }
   }
 
   enum class NGASource(val url: String) {

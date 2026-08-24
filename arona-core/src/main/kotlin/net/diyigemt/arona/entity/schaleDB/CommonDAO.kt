@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 业务数据实体与接口响应模型。
+ * 具体职责：围绕 CommonDAO 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.entity.schaleDB
 
 import net.diyigemt.arona.db.DB
@@ -15,6 +19,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
  * 部分无用信息的分支被注释，如需要请取消注释
  */
 
+// 中文说明：定义 CommonDAO 类型，用于封装本模块的数据或处理行为。
 data class CommonDAO(
 //  val GachaGroup : List<GachaGroup>,
   var regions : List<Regions> = mutableListOf(Regions(null), Regions(null)),
@@ -175,6 +180,7 @@ data class CommonDAO(
   }
 }
 
+// 中文说明：定义 GachaGroup 类型，用于封装本模块的数据或处理行为。
 data class GachaGroup(
   val Id : Int,
   val Icon : String,
@@ -184,6 +190,7 @@ data class GachaGroup(
   val ItemList : List<List<Int>>
 )
 
+// 中文说明：定义 Regions 类型，用于封装本模块的数据或处理行为。
 data class Regions(
   val abbreviation : String?,
   val NameEn : String = "",
@@ -210,18 +217,21 @@ data class Regions(
   var current_raid : List<CurrentRaid> = mutableListOf()
 )
 
+// 中文说明：定义 CurrentGacha 类型，用于封装本模块的数据或处理行为。
 data class CurrentGacha(
   var characters : List<Int>,
   var start : Long,
   var end : Long
 )
 
+// 中文说明：定义 CurrentEvents 类型，用于封装本模块的数据或处理行为。
 data class CurrentEvents(
   val event : Int,
   val start : Long,
   val end : Long
 )
 
+// 中文说明：定义 CurrentRaid 类型，用于封装本模块的数据或处理行为。
 data class CurrentRaid(
   val raid : Int,
   val terrain : String,
@@ -229,6 +239,7 @@ data class CurrentRaid(
   val end : Long
 )
 
+// 中文说明：定义 ChangeLog 类型，用于封装本模块的数据或处理行为。
 data class ChangeLog(
   val date : String,
   val contents : List<String>

@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 运行时增强功能与后台推送任务。
+ * 具体职责：围绕 AronaUpdateChecker 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.advance
 
 import kotlinx.serialization.json.Json
@@ -18,6 +22,7 @@ import org.quartz.Job
 import org.quartz.JobExecutionContext
 import org.quartz.JobKey
 
+// 中文说明：定义 AronaUpdateChecker 对象，集中提供本文件的共享功能。
 object AronaUpdateChecker: AronaQuartzService {
   private const val AronaUpdateCheckJobKey = "AronaUpdateCheck"
   override var jobKey: JobKey? = null

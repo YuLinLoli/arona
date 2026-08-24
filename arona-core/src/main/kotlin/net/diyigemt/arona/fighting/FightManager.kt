@@ -1,7 +1,12 @@
+/**
+ * 文件说明：本文件属于 战斗模拟、角色属性和地形规则。
+ * 具体职责：围绕 FightManager 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.fighting
 
 import kotlin.math.floor
 
+// 中文说明：定义 FightManager 类型，用于封装本模块的数据或处理行为。
 class FightManager(
   private val friends: MutableList<net.diyigemt.arona.fighting.Character>,
   private val enemies: MutableList<net.diyigemt.arona.fighting.Character>,

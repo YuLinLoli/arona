@@ -1,9 +1,14 @@
+/**
+ * 文件说明：本文件属于 跨模块复用的接口和生命周期约定。
+ * 具体职责：围绕 BaseFunctionProvider 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.interfaces
 
 import kotlinx.coroutines.*
 import net.diyigemt.arona.Arona
 import kotlin.coroutines.CoroutineContext
 
+// 中文说明：定义 BaseFunctionProvider 类型，用于封装本模块的数据或处理行为。
 abstract class BaseFunctionProvider(ctx: CoroutineContext? = null): CoroutineScope {
 
   abstract val tag: String

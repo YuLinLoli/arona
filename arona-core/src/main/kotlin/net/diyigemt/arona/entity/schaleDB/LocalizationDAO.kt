@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 业务数据实体与接口响应模型。
+ * 具体职责：围绕 LocalizationDAO 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.entity.schaleDB
 
 import net.diyigemt.arona.db.DB
@@ -12,6 +16,7 @@ import org.jetbrains.exposed.sql.selectAll
  *@Create 2022/8/18
  */
 
+// 中文说明：定义 LocalizationDAO 类型，用于封装本模块的数据或处理行为。
 data class LocalizationDAO(
 //    val AdaptationType: AdaptationType,
 //    val ArmorType: ArmorType,
@@ -74,12 +79,14 @@ data class LocalizationDAO(
   }
 }
 
+// 中文说明：定义 AdaptationType 类型，用于封装本模块的数据或处理行为。
 data class AdaptationType(
     val Indoor: String,
     val Outdoor: String,
     val Street: String
 )
 
+// 中文说明：定义 ArmorType 类型，用于封装本模块的数据或处理行为。
 data class ArmorType(
     val HeavyArmor: String,
     val LightArmor: String,
@@ -87,6 +94,7 @@ data class ArmorType(
     val Unarmed: String
 )
 
+// 中文说明：定义 BossFaction 类型，用于封装本模块的数据或处理行为。
 data class BossFaction(
     val CommunioSanctorum: String,
     val Decagrammaton: String,
@@ -95,6 +103,7 @@ data class BossFaction(
     val TheLibraryofLore: String
 )
 
+// 中文说明：定义 BuffName 类型，用于封装本模块的数据或处理行为。
 data class BuffName(
     val Buff_ATK: String,
     val Buff_AmmoCount: String,
@@ -174,6 +183,7 @@ data class BuffName(
     val Special_SuddenDeath: String
 )
 
+// 中文说明：定义 BuffNameLong 类型，用于封装本模块的数据或处理行为。
 data class BuffNameLong(
     val Buff_ATK: String,
     val Buff_AmmoCount: String,
@@ -253,6 +263,7 @@ data class BuffNameLong(
     val Special_SuddenDeath: String
 )
 
+// 中文说明：定义 BuffTooltip 类型，用于封装本模块的数据或处理行为。
 data class BuffTooltip(
     val Buff_ATK: String,
     val Buff_AmmoCount: String,
@@ -332,6 +343,7 @@ data class BuffTooltip(
     val Special_SuddenDeath: String
 )
 
+// 中文说明：定义 BuffType 类型，用于封装本模块的数据或处理行为。
 data class BuffType(
     val Buff: String,
     val CC: String,
@@ -339,6 +351,7 @@ data class BuffType(
     val Special: String
 )
 
+// 中文说明：定义 BulletType 类型，用于封装本模块的数据或处理行为。
 data class BulletType(
     val Explosion: String,
     val Mystic: String,
@@ -347,6 +360,7 @@ data class BulletType(
     val Siege: String
 )
 
+// 中文说明：定义 Club 类型，用于封装本模块的数据或处理行为。
 data class Club(
     val AriusSqud: String,
     val BookClub: String,
@@ -383,10 +397,12 @@ data class Club(
     val anzenkyoku: String
 )
 
+// 中文说明：定义 ConquestMap 类型，用于封装本模块的数据或处理行为。
 data class ConquestMap(
     val `815`: String
 )
 
+// 中文说明：定义 EnemyRank 类型，用于封装本模块的数据或处理行为。
 data class EnemyRank(
     val Champion: String,
     val Elite: String,
@@ -394,6 +410,7 @@ data class EnemyRank(
     val Summoned: String
 )
 
+// 中文说明：定义 EnemyTags 类型，用于封装本模块的数据或处理行为。
 data class EnemyTags(
     val EnemyLarge: String,
     val EnemyMedium: String,
@@ -401,6 +418,7 @@ data class EnemyTags(
     val EnemyXLarge: String
 )
 
+// 中文说明：定义 ItemCategory 类型，用于封装本模块的数据或处理行为。
 data class ItemCategory(
     val Artifact: String,
     val Background: String,
@@ -444,6 +462,7 @@ data class ItemCategory(
     val WeaponExpGrowthZ: String
 )
 
+// 中文说明：定义 School 类型，用于封装本模块的数据或处理行为。
 data class School(
     val Abydos: String,
     val Arius: String,
@@ -458,6 +477,7 @@ data class School(
     val Valkyrie: String
 )
 
+// 中文说明：定义 SchoolLong 类型，用于封装本模块的数据或处理行为。
 data class SchoolLong(
     val Abydos: String,
     val Arius: String,
@@ -472,11 +492,13 @@ data class SchoolLong(
     val Valkyrie: String
 )
 
+// 中文说明：定义 SquadType 类型，用于封装本模块的数据或处理行为。
 data class SquadType(
     val Main: String,
     val Support: String
 )
 
+// 中文说明：定义 StageTitle 类型，用于封装本模块的数据或处理行为。
 data class StageTitle(
     val Blood: String,
     val ChaserA: String,
@@ -488,6 +510,7 @@ data class StageTitle(
     val SchoolC: String
 )
 
+// 中文说明：定义 StageType 类型，用于封装本模块的数据或处理行为。
 data class StageType(
     val Blood: String,
     val Bounty: String,
@@ -508,6 +531,7 @@ data class StageType(
     val WorldRaid: String
 )
 
+// 中文说明：定义 Stat 类型，用于封装本模块的数据或处理行为。
 data class Stat(
     val AccuracyPoint: String,
     val AmmoCount: String,
@@ -535,6 +559,7 @@ data class Stat(
     val StabilityPoint: String
 )
 
+// 中文说明：定义 TacticRole 类型，用于封装本模块的数据或处理行为。
 data class TacticRole(
     val DamageDealer: String,
     val Healer: String,
@@ -543,12 +568,14 @@ data class TacticRole(
     val Vehicle: String
 )
 
+// 中文说明：定义 TimeAttackStage 类型，用于封装本模块的数据或处理行为。
 data class TimeAttackStage(
     val Defense: String,
     val Destruction: String,
     val Shooting: String
 )
 
+// 中文说明：定义 WeaponPartExpBonus 类型，用于封装本模块的数据或处理行为。
 data class WeaponPartExpBonus(
     val WeaponExpGrowthA: String,
     val WeaponExpGrowthB: String,
@@ -556,6 +583,7 @@ data class WeaponPartExpBonus(
     val WeaponExpGrowthZ: String
 )
 
+// 中文说明：定义 Ui 类型，用于封装本模块的数据或处理行为。
 data class Ui(
     val age: String,
     val attack_type_desc: String,

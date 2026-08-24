@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 测试代码，用于验证相关模块的行为和边界情况。
+ * 具体职责：围绕 TestActivity 提供对应的实现、数据结构或测试。
+ */
 package org.example.mirai.plugin.command
 
 import kotlinx.serialization.json.*
@@ -13,6 +17,7 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.math.floor
 
+// 中文说明：定义 TestActivity 类型，用于封装本模块的数据或处理行为。
 class TestActivity {
 
   val N3H3Plus = Regex("([3双2翻])倍")

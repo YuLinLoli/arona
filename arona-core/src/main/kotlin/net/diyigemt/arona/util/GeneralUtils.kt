@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 通用工具、网络、图片和业务辅助函数。
+ * 具体职责：围绕 GeneralUtils 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.util
 
 import net.diyigemt.arona.Arona
@@ -24,6 +28,7 @@ import org.jetbrains.exposed.sql.and
 import java.io.File
 import java.security.MessageDigest
 
+// 中文说明：定义 GeneralUtils 对象，集中提供本文件的共享功能。
 object GeneralUtils : InitializedFunction() {
 
   private const val BACKEND_IMAGE_RESOURCE = "${BACKEND_ADDRESS}$BACKEND_IMAGE_FOLDER"

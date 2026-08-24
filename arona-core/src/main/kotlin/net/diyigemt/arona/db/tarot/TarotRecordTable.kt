@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 数据库表结构、实体和数据访问逻辑。
+ * 具体职责：围绕 TarotRecordTable 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.db.tarot
 
 import org.jetbrains.exposed.dao.LongEntity
@@ -16,6 +20,7 @@ object TarotRecordTable: IdTable<Long>(name = "TarotRecord") {
   override val primaryKey: PrimaryKey = PrimaryKey(id, group)
 }
 
+// 中文说明：定义 TarotRecord 类型，用于封装本模块的数据或处理行为。
 class TarotRecord(id: EntityID<Long>): LongEntity(id) {
   companion object: LongEntityClass<TarotRecord>(TarotRecordTable)
   var group by TarotRecordTable.group

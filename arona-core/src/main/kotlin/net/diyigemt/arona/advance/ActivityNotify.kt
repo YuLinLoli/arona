@@ -1,3 +1,6 @@
+/**
+ * 文件说明：活动通知与定时推送相关逻辑。
+ */
 package net.diyigemt.arona.advance
 
 import net.diyigemt.arona.Arona
@@ -20,6 +23,7 @@ import org.quartz.JobKey
 import java.io.File
 import java.util.*
 
+// 中文说明：定义 ActivityNotify 对象，集中提供本文件的共享功能。
 object ActivityNotify : AronaQuartzService {
   private const val ActivityNotifyJobKey = "ActivityNotify"
   private const val ActivityNotifyDataInitKey = "init"
@@ -253,6 +257,7 @@ object ActivityNotify : AronaQuartzService {
 }
 
 // 每日防侠提醒类型
+// 中文说明：定义 NotifyType 类型，用于封装本模块的数据或处理行为。
 enum class NotifyType {
   ALL, ONLY_24H, ONLY_48H
 }

@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 命令拦截与扩展机制。
+ * 具体职责：围绕 CommandResolver 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.extension
 
 import net.diyigemt.arona.config.AronaConfig
@@ -16,12 +20,14 @@ import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.message.data.Message
 
 @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
+// 中文说明：定义 CommandResolver 对象，集中提供本文件的共享功能。
 object CommandResolver: CommandCallInterceptorProvider {
   override val instance: CommandCallInterceptor
     get() = CommandResolverInterceptor
 }
 
 @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
+// 中文说明：定义 CommandResolverInterceptor 对象，集中提供本文件的共享功能。
 private object CommandResolverInterceptor: CommandCallInterceptor {
   override fun interceptCall(call: CommandCall): InterceptResult<CommandCall>? {
     CommandInterceptorManager.emitInterceptCall(call)
@@ -54,6 +60,7 @@ fun extraCommandName(message: Message): String {
   return contentToString[0]
 }
 
+// 中文说明：定义 TempMessageIgnoreType 类型，用于封装本模块的数据或处理行为。
 enum class TempMessageIgnoreType {
   NONE,
   ONLY_SERVICE_GROUP,

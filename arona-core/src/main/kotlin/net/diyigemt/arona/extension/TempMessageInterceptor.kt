@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 命令拦截与扩展机制。
+ * 具体职责：围绕 TempMessageInterceptor 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.extension
 
 import net.diyigemt.arona.config.AronaConfig
@@ -9,6 +13,7 @@ import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.message.data.Message
 
 @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
+// 中文说明：定义 TempMessageInterceptor 对象，集中提供本文件的共享功能。
 object TempMessageInterceptor: CommandInterceptor {
   override val level: Int = 1
 

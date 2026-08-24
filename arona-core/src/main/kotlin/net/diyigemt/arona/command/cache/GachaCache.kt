@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 GachaCache 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command.cache
 
 import net.diyigemt.arona.Arona
@@ -7,6 +11,7 @@ import net.diyigemt.arona.db.gacha.*
 import org.jetbrains.exposed.sql.select
 
 
+// 中文说明：定义 GachaCache 对象，集中提供本文件的共享功能。
 object GachaCache {
 
   lateinit var star1List: MutableList<GachaCharacter>

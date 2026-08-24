@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 测试代码，用于验证相关模块的行为和边界情况。
+ * 具体职责：围绕 RunMirai 提供对应的实现、数据结构或测试。
+ */
 package org.example.mirai.plugin
 
 import net.diyigemt.arona.Arona

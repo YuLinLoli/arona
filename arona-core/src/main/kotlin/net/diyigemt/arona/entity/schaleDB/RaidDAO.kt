@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 业务数据实体与接口响应模型。
+ * 具体职责：围绕 RaidDAO 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.entity.schaleDB
 
 import net.diyigemt.arona.db.DB
@@ -10,6 +14,7 @@ import org.jetbrains.exposed.sql.selectAll
  *@Author hjn
  *@Create 2022/8/20
  */
+// 中文说明：定义 RaidDAO 类型，用于封装本模块的数据或处理行为。
 data class RaidDAO(
   var Raid: List<Raid> = mutableListOf(),
 //    val SeasonRewardGlobal: List<SeasonRewardGlobal>,
@@ -70,6 +75,7 @@ data class RaidDAO(
   }
 }
 
+// 中文说明：定义 Raid 类型，用于封装本模块的数据或处理行为。
 data class Raid(
   val ArmorType: String = "",
   val BulletType: String = "",
@@ -98,6 +104,7 @@ data class Raid(
   val Terrain: List<String> = mutableListOf()
 )
 
+// 中文说明：定义 SeasonRewardGlobal 类型，用于封装本模块的数据或处理行为。
 data class SeasonRewardGlobal(
     val End: Int,
     val RaidId: Int,
@@ -107,6 +114,7 @@ data class SeasonRewardGlobal(
     val Terrain: String
 )
 
+// 中文说明：定义 SeasonRewardJp 类型，用于封装本模块的数据或处理行为。
 data class SeasonRewardJp(
     val End: Int,
     val RaidId: Int,
@@ -116,6 +124,7 @@ data class SeasonRewardJp(
     val Terrain: String
 )
 
+// 中文说明：定义 TimeAttack 类型，用于封装本模块的数据或处理行为。
 data class TimeAttack(
     val ArmorType: String,
     val BulletType: String,
@@ -130,6 +139,7 @@ data class TimeAttack(
     val Terrain: String
 )
 
+// 中文说明：定义 TimeAttackRule 类型，用于封装本模块的数据或处理行为。
 data class TimeAttackRule(
     val DescEn: String,
     val DescJp: String,
@@ -141,6 +151,7 @@ data class TimeAttackRule(
     val NameKr: String
 )
 
+// 中文说明：定义 WorldRaid 类型，用于封装本模块的数据或处理行为。
 data class WorldRaid(
     val ArmorType: String,
     val BulletType: String,
@@ -162,6 +173,7 @@ data class WorldRaid(
     val WorldBossHP: Long
 )
 
+// 中文说明：定义 RaidSkill 类型，用于封装本模块的数据或处理行为。
 data class RaidSkill(
     val ATGCost: Int,
     val DescCn: String,
@@ -188,6 +200,7 @@ data class RaidSkill(
     val SkillType: String
 )
 
+// 中文说明：定义 Formation 类型，用于封装本模块的数据或处理行为。
 data class Formation(
     val EnemyList: List<Int>,
     val Grade: List<Int>,
@@ -195,6 +208,7 @@ data class Formation(
     val Level: List<Int>
 )
 
+// 中文说明：定义 RaidSkillX 类型，用于封装本模块的数据或处理行为。
 data class RaidSkillX(
     val ATGCost: Int,
     val DescCn: Any,

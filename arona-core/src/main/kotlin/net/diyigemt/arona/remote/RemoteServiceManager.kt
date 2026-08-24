@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 远程服务调用与服务管理。
+ * 具体职责：围绕 RemoteServiceManager 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.remote
 
 import kotlinx.serialization.json.Json
@@ -11,6 +15,7 @@ import net.diyigemt.arona.remote.action.AnnouncementRemoteService
 import net.diyigemt.arona.remote.action.GachaPoolUpdateRemoteService
 import kotlin.reflect.full.createType
 
+// 中文说明：定义 RemoteServiceManager 对象，集中提供本文件的共享功能。
 object RemoteServiceManager: InitializedFunction() {
 
   private val MAP: MutableMap<RemoteServiceAction, RemoteService<Any>> = mutableMapOf()

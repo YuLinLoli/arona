@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 聊天命令及命令参数处理逻辑。
+ * 具体职责：围绕 TrainerCommand 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.command
 
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +38,7 @@ import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import java.io.File
 import java.lang.Integer.min
 
+// 中文说明：定义 TrainerCommand 对象，集中提供本文件的共享功能。
 object TrainerCommand : SimpleCommand(
   Arona,"trainer", "攻略",
   description = "主线地图和学生攻略"

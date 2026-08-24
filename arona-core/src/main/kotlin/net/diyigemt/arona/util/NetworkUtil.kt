@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 通用工具、网络、图片和业务辅助函数。
+ * 具体职责：围绕 NetworkUtil 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.util
 
 import kotlinx.serialization.decodeFromString
@@ -16,6 +20,7 @@ import java.io.File
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.isAccessible
 
+// 中文说明：定义 NetworkUtil 对象，集中提供本文件的共享功能。
 object NetworkUtil {
   const val BACKEND_ADDRESS = "https://arona.diyigemt.com"
   private const val CDN_ADDRESS = "https://arona.cdn.diyigemt.com"

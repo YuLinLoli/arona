@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 通用工具、网络、图片和业务辅助函数。
+ * 具体职责：围绕 CalendarFactory 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.util.scbaleDB.factories
 
 import net.diyigemt.arona.entity.schaleDB.LocalizationDAO
@@ -10,6 +14,7 @@ import net.diyigemt.arona.util.scbaleDB.SchaleDBUtil
  *@Author hjn
  *@Create 2022/8/20
  */
+// 中文说明：定义 CalendarFactory 对象，集中提供本文件的共享功能。
 object CalendarFactory {
   fun getEventLocalizationName(eventID : Int) : String{
     val localizationData: LocalizationDAO = SchaleDBUtil.localizationItem

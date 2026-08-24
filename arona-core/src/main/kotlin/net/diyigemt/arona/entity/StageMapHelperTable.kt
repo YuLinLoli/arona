@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 业务数据实体与接口响应模型。
+ * 具体职责：围绕 StageMapHelperTable 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.entity
 
 const val DEFAULT_TABLE_PADDING = 20
@@ -13,6 +17,7 @@ val DEFAULT_TABLE_WHITE_SPACE = (1..12).joinToString("") { "A" }
 const val DEFAULT_TABLE_SPLIT_LINE = HelperTableColFontLength - 3
 const val HelperTableColWidth = HelperTableColFontLength * DEFAULT_TABLE_FONT_SIZE
 
+// 中文说明：定义 StageMapHelperTable 类型，用于封装本模块的数据或处理行为。
 data class StageMapHelperTable(
   val row: Int,
   val col: Int,

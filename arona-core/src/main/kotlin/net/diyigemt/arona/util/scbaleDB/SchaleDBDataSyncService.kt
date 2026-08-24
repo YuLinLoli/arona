@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 通用工具、网络、图片和业务辅助函数。
+ * 具体职责：围绕 SchaleDBDataSyncService 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.util.scbaleDB
 
 import com.google.gson.Gson
@@ -25,6 +29,7 @@ import java.time.format.DateTimeFormatter
  *@Author hjn
  *@Create 2022/8/20
  */
+// 中文说明：定义 SchaleDBDataSyncService 对象，集中提供本文件的共享功能。
 object SchaleDBDataSyncService : AronaQuartzService{
   override var jobKey: JobKey? = null
   lateinit var birthdayJobKey: JobKey

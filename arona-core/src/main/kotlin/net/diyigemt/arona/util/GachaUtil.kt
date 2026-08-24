@@ -1,5 +1,9 @@
 @file:Suppress("DuplicatedCode")
 
+/**
+ * 文件说明：本文件属于 通用工具、网络、图片和业务辅助函数。
+ * 具体职责：围绕 GachaUtil 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.util
 
 import net.diyigemt.arona.command.cache.GachaCache
@@ -8,6 +12,7 @@ import net.diyigemt.arona.db.DataBaseProvider
 import net.diyigemt.arona.db.gacha.*
 import org.jetbrains.exposed.sql.and
 
+// 中文说明：定义 GachaUtil 对象，集中提供本文件的共享功能。
 object GachaUtil {
   private const val star = "★"
 

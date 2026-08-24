@@ -1,5 +1,10 @@
+/**
+ * 文件说明：本文件属于 业务数据实体与接口响应模型。
+ * 具体职责：围绕 Activity 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.entity
 
+// 中文说明：定义 Activity 类型，用于封装本模块的数据或处理行为。
 data class Activity(
   var content: String,
   var time: String,
@@ -7,12 +12,14 @@ data class Activity(
   var serverLocale: ServerLocale = ServerLocale.JP,
 )
 
+// 中文说明：定义 ServerLocale 类型，用于封装本模块的数据或处理行为。
 enum class ServerLocale(val serverName: String, val dbName: String, val commandName: String) {
   JP("日服", "JPN", "jp"),
   GLOBAL("国际服", "GLB", "en"),
   CN("国服", "CN", "cn"),
 }
 
+// 中文说明：定义 ActivityType 类型，用于封装本模块的数据或处理行为。
 enum class ActivityType(val level: Int) {
   NULL(1),
   N2_3(1),

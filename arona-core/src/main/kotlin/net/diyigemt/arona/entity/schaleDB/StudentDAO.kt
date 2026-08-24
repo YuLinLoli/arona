@@ -1,3 +1,7 @@
+/**
+ * 文件说明：本文件属于 业务数据实体与接口响应模型。
+ * 具体职责：围绕 StudentDAO 提供对应的实现、数据结构或测试。
+ */
 package net.diyigemt.arona.entity.schaleDB
 
 import net.diyigemt.arona.db.DB
@@ -13,6 +17,7 @@ import java.time.LocalDate
  *@Create 2022/8/18
  */
 
+// 中文说明：定义 StudentDAO 类型，用于封装本模块的数据或处理行为。
 class StudentDAO : ArrayList<StudentDAOItem>(), BaseDAO{
   fun getStudentNameById(studentID : Int) : String? {
     for (item in this){
@@ -57,6 +62,7 @@ class StudentDAO : ArrayList<StudentDAOItem>(), BaseDAO{
   }
 }
 
+// 中文说明：定义 StudentDAOItem 类型，用于封装本模块的数据或处理行为。
 data class StudentDAOItem(
 //    val AccuracyPoint: Int,
 //    val AmmoCost: Int,
@@ -130,6 +136,7 @@ data class StudentDAOItem(
 //    val WeaponType: String
 )
 
+// 中文说明：定义 Gear 类型，用于封装本模块的数据或处理行为。
 data class Gear(
     val Desc: String,
     val Icon: String,
@@ -141,6 +148,7 @@ data class Gear(
     val TierUpMaterialAmount: List<List<Int>>
 )
 
+// 中文说明：定义 Skill 类型，用于封装本模块的数据或处理行为。
 data class Skill(
     val Cost: List<Int>,
     val Desc: String,
@@ -153,6 +161,7 @@ data class Skill(
     val SummonStatCoefficient: List<List<Int>>
 )
 
+// 中文说明：定义 Weapon 类型，用于封装本模块的数据或处理行为。
 data class Weapon(
     val AdaptationType: String,
     val AdaptationValue: Int,
@@ -167,6 +176,7 @@ data class Weapon(
     val StatLevelUpType: String
 )
 
+// 中文说明：定义 Birthday 类型，用于封装本模块的数据或处理行为。
 data class Birthday(
   val name : String,
   val date : LocalDate
