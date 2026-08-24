@@ -35,3 +35,26 @@ data class Meta(
   val request_id : String,
   val trace_id : String
 )
+
+data class GameKeeEntryResponse(
+  val code: Int = 0,
+  val msg: String = "",
+  val data: GameKeeEntry? = null
+)
+
+data class GameKeeEntry(
+  val id: Int = 0,
+  val name: String = "",
+  val pid: Int = 0,
+  val content_id: Int? = null,
+  val child: List<GameKeeEntry>? = null
+)
+data class GameKeeContentResponse(
+  val code: Int = 0,
+  val msg: String = "",
+  val data: GameKeeContent? = null
+)
+
+data class GameKeeContent(
+  val thumb: String? = null
+)

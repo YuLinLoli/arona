@@ -17,6 +17,7 @@ import net.diyigemt.arona.config.AronaTrainerConfig
 import net.diyigemt.arona.entity.TrainerOverride
 import net.diyigemt.arona.service.AronaService
 import net.diyigemt.arona.util.GeneralUtils
+import net.diyigemt.arona.util.GameKeeUtil
 import net.diyigemt.arona.util.GeneralUtils.toHex
 import net.diyigemt.arona.util.other.KWatchChannel
 import net.diyigemt.arona.util.other.KWatchEvent
@@ -53,6 +54,21 @@ object TrainerCommand : SimpleCommand(
   private val overrideList = mutableListOf<TrainerOverride>()
   @Handler
   suspend fun UserCommandSender.trainer(str: String) {
+    if (str == "日服活动") {
+      val imageFile = kotlin.runCatching { GameKeeUtil.getJpActivityGuide() }
+        .onFailure { Arona.warning("获取日服活动攻略失败: ${it.message}") }
+        .getOrNull()
+      if (imageFile == null) {
+        sendMessage("获取日服活动攻略失败，请稍后重试")
+        return
+      }
+      try {
+        sendImage(subject, imageFile)
+      } finally {
+        imageFile.delete()
+      }
+      return
+    }
     val override = overrideList
       .filter { it.name.contains(str) }
       .firstOrNull { it.name.split(",")
