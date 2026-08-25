@@ -56,5 +56,6 @@ data class GameKeeContentResponse(
 )
 
 data class GameKeeContent(
-  val thumb_list: List<String> = emptyList()
+  val thumb_list: List<String> = emptyList(),
+  val version: String = ""
 )

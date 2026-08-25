@@ -5,6 +5,8 @@
 package net.diyigemt.arona.util
 
 import com.google.gson.Gson
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
 import net.diyigemt.arona.entity.Activity
 import net.diyigemt.arona.entity.ActivityType
 import net.diyigemt.arona.entity.GameKeeDAO
@@ -24,7 +26,97 @@ object GameKeeUtil {
   private const val url = "https://www.gamekee.com/v1/activity/query"
   private const val entryTreeUrl = "https://www.gamekee.com/v1/entry/treesByPidV1?pid=137392"
   private const val entryTreeUrl1 = "https://www.gamekee.com/v1/content/detail/"
+  private const val contentCdnUrl = "https://api-cdn.gamekee.com/wiki2.0/pro/829/content"
 
+  fun getScheduleNoteImages(): List<File> {
+    val treeResponse = NetworkUtil.request(Jsoup.connect(entryTreeUrl))
+      .headers(gameKeeHeaders("https://www.gamekee.com/ba/second/137392"))
+      .get()
+      .text()
+    val root = Gson().fromJson(treeResponse, GameKeeEntryResponse::class.java)
+    val contentId = root.data?.child.orEmpty()
+      .firstOrNull { it.name == "当期玩法" }
+      ?.child.orEmpty()
+      .firstOrNull { it.name.contains("日程笔记") }
+      ?.content_id
+      ?: throw IllegalStateException("GameKee schedule note entry not found")
+
+    val referer = "https://www.gamekee.com/ba/${contentId}.html"
+    val detail = Gson().fromJson(
+      NetworkUtil.request(Jsoup.connect("$entryTreeUrl1$contentId"))
+        .headers(gameKeeHeaders(referer))
+        .get()
+        .text(),
+      GameKeeContentResponse::class.java
+    )
+    val version = detail.data?.version?.takeIf { it.isNotBlank() }
+      ?: throw IllegalStateException("GameKee schedule note version not found")
+    val contentUrl = "$contentCdnUrl/$contentId.json?v=$version"
+    val contentJson = NetworkUtil.request(Jsoup.connect(contentUrl))
+      .header("accept", "application/json, text/plain, */*")
+      .header("accept-encoding", "identity")
+      .header("accept-language", "zh-CN,zh;q=0.9,zh-Hans;q=0.8,und;q=0.7,zh-Hant;q=0.6,ja;q=0.5")
+      .header("connection", "keep-alive")
+      .header("dnt", "1")
+      .header("origin", "https://www.gamekee.com")
+      .header("referer", "https://www.gamekee.com/")
+      .header("sec-ch-ua", "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"")
+      .header("sec-ch-ua-mobile", "?0")
+      .header("sec-ch-ua-platform", "\"Windows\"")
+      .header("sec-fetch-dest", "empty")
+      .header("sec-fetch-mode", "cors")
+      .header("sec-fetch-site", "same-site")
+      .header("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36")
+      .ignoreContentType(true)
+      .maxBodySize(15 * 1024 * 1024)
+      .get()
+      .text()
+    val content = JsonParser.parseString(contentJson).asJsonObject.get("content")?.asString
+      ?: throw IllegalStateException("GameKee schedule note content not found")
+    val nodes = JsonParser.parseString(content)
+    val imageUrls = mutableListOf<String>()
+    var markerFound = false
+    fun collect(node: JsonElement) {
+      if (!node.isJsonObject) return
+      val obj = node.asJsonObject
+      if (!markerFound && obj.get("text")?.asString?.contains("日程笔记再见") == true) {
+        markerFound = true
+      }
+      if (markerFound && obj.get("type")?.asString == "image") {
+        obj.get("src")?.asString?.let { imageUrls.add(if (it.startsWith("//")) "https:$it" else it) }
+      }
+      obj.get("children")?.takeIf { it.isJsonArray }?.asJsonArray?.forEach(::collect)
+    }
+    nodes.asJsonArray.forEach(::collect)
+    if (imageUrls.isEmpty()) {
+      throw IllegalStateException("GameKee schedule note images not found")
+    }
+    return downloadImages(imageUrls, contentId, referer)
+  }
+
+  private fun downloadImages(imageUrls: List<String>, contentId: Int, referer: String): List<File> {
+    val files = mutableListOf<File>()
+    try {
+      imageUrls.forEachIndexed { index, imageUrl ->
+        val suffix = imageUrl.substringBefore("?").substringAfterLast(".", "png")
+          .takeIf { it.length in 2..5 }?.let { ".${it}" } ?: ".png"
+        val file = File.createTempFile("arona-activity-guide-$contentId-$index-", suffix).apply { deleteOnExit() }
+        files.add(file)
+        NetworkUtil.request(Jsoup.connect(imageUrl))
+          .header("accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+          .header("accept-encoding", "identity")
+          .header("accept-language", "zh-CN,zh;q=0.9,zh-Hans;q=0.8,und;q=0.7,zh-Hant;q=0.6,ja;q=0.5")
+          .header("referer", referer)
+          .ignoreContentType(true)
+          .maxBodySize(15 * 1024 * 1024)
+          .execute().bodyStream().use { input -> file.outputStream().use { output -> input.copyTo(output) } }
+      }
+      return files
+    } catch (throwable: Throwable) {
+      files.forEach(File::delete)
+      throw throwable
+    }
+  }
   fun getJpActivityGuide(): List<File> = getActivityGuide("日服活动攻略")
 
   fun getGlobalActivityGuide(): List<File> = getActivityGuide("国际服活动攻略")

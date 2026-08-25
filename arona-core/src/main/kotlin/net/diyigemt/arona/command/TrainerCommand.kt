@@ -34,6 +34,7 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.events.GroupTempMessageEvent
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
+import net.mamoe.mirai.message.data.ForwardMessageBuilder
 import net.mamoe.mirai.message.data.MessageChainBuilder
 import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
@@ -59,6 +60,7 @@ object TrainerCommand : SimpleCommand(
       "日服活动" -> GameKeeUtil::getJpActivityGuide
       "国际服活动" -> GameKeeUtil::getGlobalActivityGuide
       "国服活动" -> GameKeeUtil::getCnActivityGuide
+      "日程笔记" -> GameKeeUtil::getScheduleNoteImages
       else -> null
     }
     if (guideFetcher != null) {
@@ -70,7 +72,11 @@ object TrainerCommand : SimpleCommand(
         return
       }
       try {
-        sendImages(subject, imageFiles)
+        if (str == "日程笔记") {
+          sendForwardImages(subject, imageFiles)
+        } else {
+          sendImages(subject, imageFiles)
+        }
       } finally {
         imageFiles.forEach { it.delete() }
       }
@@ -167,6 +173,22 @@ object TrainerCommand : SimpleCommand(
     }
   }
 
+  private suspend fun sendForwardImages(contact: Contact, images: List<File>) {
+    val builder = ForwardMessageBuilder(contact)
+    val resources = mutableListOf<net.mamoe.mirai.utils.ExternalResource>()
+    try {
+      images.forEach { image ->
+        val resource = image.toExternalResource()
+        resources.add(resource)
+        builder.add(Arona.arona!!, contact.uploadImage(resource))
+      }
+      contact.sendMessage(builder.build())
+    } finally {
+      withContext(Dispatchers.IO) {
+        resources.forEach { it.close() }
+      }
+    }
+  }
   private suspend fun sendImages(contact: Contact, images: List<File>) {
     val builder = MessageChainBuilder()
     val resources = mutableListOf<net.mamoe.mirai.utils.ExternalResource>()
