@@ -34,6 +34,7 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.events.GroupTempMessageEvent
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
+import net.mamoe.mirai.message.data.MessageChainBuilder
 import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import java.io.File
@@ -54,18 +55,24 @@ object TrainerCommand : SimpleCommand(
   private val overrideList = mutableListOf<TrainerOverride>()
   @Handler
   suspend fun UserCommandSender.trainer(str: String) {
-    if (str == "日服活动") {
-      val imageFile = kotlin.runCatching { GameKeeUtil.getJpActivityGuide() }
-        .onFailure { Arona.warning("获取日服活动攻略失败: ${it.message}") }
+    val guideFetcher = when (str) {
+      "日服活动" -> GameKeeUtil::getJpActivityGuide
+      "国际服活动" -> GameKeeUtil::getGlobalActivityGuide
+      "国服活动" -> GameKeeUtil::getCnActivityGuide
+      else -> null
+    }
+    if (guideFetcher != null) {
+      val imageFiles = kotlin.runCatching { guideFetcher() }
+        .onFailure { Arona.warning("获取${str}攻略失败: ${it.message}") }
         .getOrNull()
-      if (imageFile == null) {
-        sendMessage("获取日服活动攻略失败，请稍后重试")
+      if (imageFiles == null) {
+        sendMessage("获取${str}攻略失败，请稍后重试")
         return
       }
       try {
-        sendImage(subject, imageFile)
+        sendImages(subject, imageFiles)
       } finally {
-        imageFile.delete()
+        imageFiles.forEach { it.delete() }
       }
       return
     }
@@ -160,12 +167,25 @@ object TrainerCommand : SimpleCommand(
     }
   }
 
-  private suspend fun sendImage(contact: Contact, image: File) {
-    val resource = image.toExternalResource()
-    contact.sendMessage(contact.uploadImage(resource))
-    withContext(Dispatchers.IO) {
-      resource.close()
+  private suspend fun sendImages(contact: Contact, images: List<File>) {
+    val builder = MessageChainBuilder()
+    val resources = mutableListOf<net.mamoe.mirai.utils.ExternalResource>()
+    try {
+      images.forEach { image ->
+        val resource = image.toExternalResource()
+        resources.add(resource)
+        builder.add(contact.uploadImage(resource))
+      }
+      contact.sendMessage(builder.build())
+    } finally {
+      withContext(Dispatchers.IO) {
+        resources.forEach { it.close() }
+      }
     }
+  }
+
+  private suspend fun sendImage(contact: Contact, image: File) {
+    sendImages(contact, listOf(image))
   }
 
   // 模糊查询缓存

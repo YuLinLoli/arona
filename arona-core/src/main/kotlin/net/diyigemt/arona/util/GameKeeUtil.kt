@@ -25,7 +25,13 @@ object GameKeeUtil {
   private const val entryTreeUrl = "https://www.gamekee.com/v1/entry/treesByPidV1?pid=137392"
   private const val entryTreeUrl1 = "https://www.gamekee.com/v1/content/detail/"
 
-  fun getJpActivityGuide(): File {
+  fun getJpActivityGuide(): List<File> = getActivityGuide("日服活动攻略")
+
+  fun getGlobalActivityGuide(): List<File> = getActivityGuide("国际服活动攻略")
+
+  fun getCnActivityGuide(): List<File> = getActivityGuide("国服活动攻略")
+
+  private fun getActivityGuide(guideName: String): List<File> {
     val treeResponse = NetworkUtil.request(Jsoup.connect(entryTreeUrl))
       .headers(gameKeeHeaders("https://www.gamekee.com/ba/second/137392"))
       .get()
@@ -35,44 +41,53 @@ object GameKeeUtil {
     val contentId = root.data?.child.orEmpty()
       .firstOrNull { it.name == "当期活动 | 当期卡池" }
       ?.child.orEmpty()
-      .firstOrNull { it.name == "日服活动攻略" }
+      .firstOrNull { it.name == guideName }
       ?.content_id
-      ?: throw IllegalStateException("GameKee JP activity guide data not found")
+      ?: throw IllegalStateException("GameKee activity guide not found: $guideName")
 
     val referer = "https://www.gamekee.com/ba/${contentId}.html"
     val detailResponse = NetworkUtil.request(Jsoup.connect("$entryTreeUrl1$contentId"))
       .headers(gameKeeHeaders(referer))
       .get()
       .text()
-    val thumb = Gson().fromJson(detailResponse, GameKeeContentResponse::class.java)
-      .data?.thumb
-      ?.split(",")
-      ?.getOrNull(1)
-      ?.trim()
-      ?.takeIf { it.isNotEmpty() }
-      ?: throw IllegalStateException("GameKee JP activity guide data not found")
+    val imageUrls = Gson().fromJson(detailResponse, GameKeeContentResponse::class.java)
+      .data?.thumb_list.orEmpty()
+      .map { if (it.startsWith("//")) "https:$it" else it }
+      .filter { it.contains("/pro/") }
+    if (imageUrls.isEmpty()) {
+      throw IllegalStateException("GameKee activity guide images not found: $guideName")
+    }
 
-    val imageUrl = if (thumb.startsWith("//")) "https:$thumb" else thumb
-    val imageFile = File.createTempFile("arona-jp-activity-guide-$contentId-", ".png").apply { deleteOnExit() }
+    val imageFiles = mutableListOf<File>()
     try {
-      val imageResponse = NetworkUtil.request(Jsoup.connect(imageUrl))
-        .header("accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
-        .header("accept-encoding", "gzip, deflate, br, zstd")
-        .header("accept-language", "zh-CN,zh;q=0.9,zh-Hans;q=0.8,und;q=0.7,zh-Hant;q=0.6,ja;q=0.5")
-        .header("referer", referer)
-        .ignoreContentType(true)
-        .maxBodySize(15 * 1024 * 1024)
-        .execute()
-      imageResponse.bodyStream().use { input ->
-        imageFile.outputStream().use { output -> input.copyTo(output) }
+      imageUrls.forEachIndexed { index, imageUrl ->
+        val suffix = imageUrl.substringBefore("?")
+          .substringAfterLast(".", "png")
+          .takeIf { it.length in 2..5 }
+          ?.let { ".$it" }
+          ?: ".png"
+        val imageFile = File.createTempFile("arona-activity-guide-$contentId-$index-", suffix).apply {
+          deleteOnExit()
+        }
+        imageFiles.add(imageFile)
+        val imageResponse = NetworkUtil.request(Jsoup.connect(imageUrl))
+          .header("accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+          .header("accept-encoding", "gzip, deflate, br, zstd")
+          .header("accept-language", "zh-CN,zh;q=0.9,zh-Hans;q=0.8,und;q=0.7,zh-Hant;q=0.6,ja;q=0.5")
+          .header("referer", referer)
+          .ignoreContentType(true)
+          .maxBodySize(15 * 1024 * 1024)
+          .execute()
+        imageResponse.bodyStream().use { input ->
+          imageFile.outputStream().use { output -> input.copyTo(output) }
+        }
       }
-      return imageFile
+      return imageFiles
     } catch (throwable: Throwable) {
-      imageFile.delete()
+      imageFiles.forEach { it.delete() }
       throw throwable
     }
   }
-
   private fun gameKeeHeaders(referer: String): Map<String, String> = mapOf(
     "accept" to "application/json, text/plain, */*",
     "accept-encoding" to "gzip, deflate, br, zstd",

@@ -56,5 +56,5 @@ data class GameKeeContentResponse(
 )
 
 data class GameKeeContent(
-  val thumb: String? = null
+  val thumb_list: List<String> = emptyList()
 )
