@@ -14,6 +14,7 @@ object TarotTable: IntIdTable(name = "Tarot") {
   val name: Column<String> = varchar("name", 30)
   val positive: Column<String> = text("positive")
   val negative: Column<String> = text("negative")
+  val number: Column<Int> = integer("number")
 
 }
 
@@ -24,4 +25,5 @@ class Tarot(id: EntityID<Int>) : IntEntity(id) {
   val name by TarotTable.name
   val positive by TarotTable.positive
   val negative by TarotTable.negative
+  val number by TarotTable.number
 }

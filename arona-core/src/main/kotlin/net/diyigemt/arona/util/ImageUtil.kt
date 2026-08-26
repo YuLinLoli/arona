@@ -5,6 +5,8 @@
 package net.diyigemt.arona.util
 import net.diyigemt.arona.Arona
 import net.diyigemt.arona.interfaces.InitializedFunction
+import net.diyigemt.arona.runtime.RuntimeLog
+import net.diyigemt.arona.runtime.RuntimeServices
 import net.diyigemt.arona.util.ActivityUtil.DEFAULT_CALENDAR_FONT_SIZE
 import net.diyigemt.arona.util.ActivityUtil.DEFAULT_CALENDAR_LINE_MARGIN
 import java.awt.*
@@ -121,22 +123,50 @@ object ImageUtil : InitializedFunction() {
   }
 
   override fun init() {
-    // 下载字体
-    Arona.runSuspend {
+    // 下载中文字体, 独立模式与插件模式共用
+    val block: () -> Unit = {
       kotlin.runCatching {
-        File(Arona.dataFolderPath(FontFolder)).also { it.mkdirs() }
-        val path = "$FontFolder/$FONT_NAME"
-        val fontFile = Arona.dataFolderFile(path)
-        if (!fontFile.exists()) {
-          NetworkUtil.downloadFileFile(path, fontFile)
+        val folder = if (RuntimeServices.isStandalone) {
+          GeneralUtils.localImageFile(FontFolder).also { it.mkdirs() }
+        } else {
+          File(Arona.dataFolderPath(FontFolder)).also { it.mkdirs() }
         }
+        val path = "$FontFolder/$FONT_NAME"
+        val fontFile = if (RuntimeServices.isStandalone) {
+          GeneralUtils.localImageFile(path)
+        } else {
+          Arona.dataFolderFile(path)
+        }
+        var downloaded = false
+        var attempt = 0
+        while (!downloaded && attempt < 3) {
+          attempt++
+          runCatching {
+            if (!fontFile.exists() || fontFile.length() < 1024L * 100L) {
+              NetworkUtil.downloadFileFile(path, fontFile)
+            }
+          }.onSuccess {
+            if (fontFile.exists() && fontFile.length() >= 1024L * 100L) downloaded = true
+          }
+          if (!downloaded) Thread.sleep(2000L)
+        }
+        if (!downloaded) throw IllegalStateException("字体文件下载失败")
         val f = Font.createFont(Font.TRUETYPE_FONT, fontFile)
         GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(f)
         font = f
-        Arona.info("中文字体初始化成功")
+        RuntimeLog.info("中文字体初始化成功")
       }.onFailure {
-        Arona.warning("字体注册失败, 使用默认字体, 可能会导致中文乱码")
+        RuntimeLog.warning("字体注册失败, 使用默认字体, 可能会导致中文乱码")
       }
+    }
+    if (RuntimeServices.isStandalone) {
+      Thread(block).apply {
+        isDaemon = true
+        name = "arona-font-init"
+        start()
+      }
+    } else {
+      Arona.runSuspend { block() }
     }
   }
 }

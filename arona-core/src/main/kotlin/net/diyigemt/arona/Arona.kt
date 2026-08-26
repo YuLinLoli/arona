@@ -15,6 +15,7 @@ package net.diyigemt.arona
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import net.diyigemt.arona.cg.BuildConfig
+import net.diyigemt.arona.command.CallMeCommand
 import net.diyigemt.arona.config.*
 import net.diyigemt.arona.db.DataBaseProvider
 import net.diyigemt.arona.extension.CommandInterceptorManager
@@ -28,6 +29,9 @@ import net.diyigemt.arona.remote.RemoteServiceManager
 import net.diyigemt.arona.runtime.MessageTarget
 import net.diyigemt.arona.runtime.MiraiMessageSender
 import net.diyigemt.arona.runtime.OutgoingMessage
+import net.diyigemt.arona.runtime.RuntimeConfig
+import net.diyigemt.arona.runtime.RuntimeGachaConfig
+import net.diyigemt.arona.runtime.RuntimeLog
 import net.diyigemt.arona.runtime.RuntimeServices
 import net.diyigemt.arona.service.AronaServiceManager
 import net.diyigemt.arona.util.GeneralUtils
@@ -121,6 +125,18 @@ object Arona : KotlinPlugin(
   private fun init() {
     AronaConfig.reload()
     AronaGachaConfig.init()
+    RuntimeLog.infoDelegate = { logger.info(it) }
+    RuntimeLog.warningDelegate = { logger.warning(it) }
+    RuntimeLog.errorDelegate = { logger.error(it) }
+    RuntimeLog.verboseDelegate = { logger.verbose(it) }
+    RuntimeConfig.botId = AronaConfig.qq
+    RuntimeConfig.groups = AronaConfig.groups.toList()
+    RuntimeConfig.managers = AronaConfig.managerGroup.toList()
+    RuntimeConfig.endWithSensei = AronaConfig.endWithSensei
+    RuntimeConfig.uuid = AronaConfig.uuid
+    RuntimeConfig.proxyHost = AronaConfig.proxyHost
+    RuntimeConfig.proxyPort = AronaConfig.proxyPort
+    RuntimeGachaConfig.syncFromPlugin()
     AronaNudgeConfig.reload()
     AronaHentaiConfig.reload()
     AronaRepeatConfig.reload()
@@ -135,7 +151,7 @@ object Arona : KotlinPlugin(
       INIT.forEach {
         it.init()
       }
-
+      RuntimeConfig.callMeEnabled = CallMeCommand.enable
     }
 //    startUpload() // 上传图片获取mirai-code
   }
@@ -174,7 +190,8 @@ object Arona : KotlinPlugin(
     if (sender != null) {
       runSuspend {
         AronaConfig.groups.forEach { groupId ->
-          sender.send(MessageTarget.Group(groupId), OutgoingMessage.text(message))
+          runCatching { sender.send(MessageTarget.Group(groupId), OutgoingMessage.text(message)) }
+            .onFailure { Arona.warning("发送消息到群 $groupId 失败: ${it.message}") }
         }
       }
       return

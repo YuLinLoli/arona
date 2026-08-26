@@ -9,6 +9,8 @@ import net.diyigemt.arona.Arona
 import net.diyigemt.arona.entity.Activity
 import net.diyigemt.arona.entity.ActivityType
 import net.diyigemt.arona.entity.ServerLocale
+import net.diyigemt.arona.runtime.RuntimeLog
+import net.diyigemt.arona.runtime.RuntimeServices
 import net.diyigemt.arona.util.GeneralUtils.clearExtraQute
 import net.diyigemt.arona.util.ImageUtil.scale
 import net.diyigemt.arona.util.TimeUtil.calcDiffDayAndHour
@@ -93,7 +95,7 @@ object ActivityUtil {
   fun fetchCNActivity(): Pair<List<Activity>, List<Activity>> {
     return fetchCNActivityFromGameKee().let {
       // 加入生日信息
-      it.first to it.second.toMutableList().also { a -> a.addAll(SchaleDBUtil.getENBirthdayData()) }
+      it.first to it.second.toMutableList().also { a -> a.addAll(SchaleDBUtil.getCNBirthdayData()) }
     }
   }
 
@@ -329,7 +331,7 @@ object ActivityUtil {
           (data["message"] ?: "-1").toString()
         ).toInt() != 0
       ) {
-        Arona.error("catch BA en activities error, ${data["message"].toString()}")
+        RuntimeLog.error("catch BA en activities error, ${data["message"].toString()}")
         continue
       }
       val items = forceGets(data, "data.items").jsonArray
@@ -694,6 +696,8 @@ object ActivityUtil {
     pending: MutableList<Activity>,
     activity: Activity
   ) {
+    activity.startTime = parseStart.time
+    activity.endTime = parseEnd.time
     if (now.before(parseStart)) {
       pending.add(activity)
     } else if (now.before(parseEnd)) {
@@ -760,7 +764,9 @@ object ActivityUtil {
     lineIndex++
     drawActivity(pending, true)
     ImageUtil.drawText(image, "数据来源: https://ba.gamekee.com/", calcY())
-    val imageFile = File(Arona.dataFolder.absolutePath + "/activity-${server.serverName}.png")
+    val imageFile = RuntimeServices.dataRoot
+      ?.resolve("activity-${server.serverName}.png")?.toFile()
+      ?: File(Arona.dataFolder.absolutePath + "/activity-${server.serverName}.png")
     ImageIO.write(image.first.scale(DEFAULT_IMAGE_SCALE), "png", imageFile)
     return imageFile
   }

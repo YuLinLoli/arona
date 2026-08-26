@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import net.diyigemt.arona.runtime.MessageSegment
 import net.diyigemt.arona.runtime.OutgoingMessage
+import java.io.File
 import java.util.UUID
 
 object OneBotProtocol {
@@ -34,11 +35,27 @@ object OneBotProtocol {
             addProperty("type", "text")
             add("data", JsonObject().apply { addProperty("text", segment.value) })
           }
+          is MessageSegment.At -> {
+            addProperty("type", "at")
+            add("data", JsonObject().apply { addProperty("qq", segment.userId) })
+          }
+          is MessageSegment.Forward -> {
+            // send_group_msg/send_private_msg 不支持 forward 段, 合并转发走 send_forward_msg 专用通道
+            addProperty("type", "text")
+            add("data", JsonObject().apply { addProperty("text", "[合并转发:${segment.title}]") })
+          }
           is MessageSegment.Image -> {
             addProperty("type", "image")
             add("data", JsonObject().apply {
-              val value = segment.url ?: segment.file ?: segment.data?.let {
+              val value = segment.url ?: segment.data?.let {
                 "base64://${java.util.Base64.getEncoder().encodeToString(it)}"
+              } ?: segment.file?.let { filePath ->
+                val file = File(filePath)
+                if (file.isFile) {
+                  "base64://${java.util.Base64.getEncoder().encodeToString(file.readBytes())}"
+                } else {
+                  filePath
+                }
               } ?: ""
               addProperty("file", value)
             })
@@ -48,17 +65,70 @@ object OneBotProtocol {
     }
   }
 
-  fun extractText(event: OneBotEvent): String {
-    event.rawMessage?.let { return it }
-    val message = event.message ?: return ""
-    if (message.isJsonPrimitive) return message.asString
-    if (!message.isJsonArray) return ""
-    return message.asJsonArray.joinToString("") { segment ->
-      val objectValue = segment.asJsonObject
-      if (objectValue.get("type")?.asString == "text") {
-        objectValue.getAsJsonObject("data")?.get("text")?.asString.orEmpty()
-      } else ""
+  fun extractText(event: OneBotEvent): String = extractSegments(event).joinToString("") { segment ->
+    when (segment) {
+      is MessageSegment.Text -> segment.value
+      is MessageSegment.At -> "@${segment.userId}"
+      is MessageSegment.Forward -> "[合并转发:${segment.title}]"
+      is MessageSegment.Image -> formatImage(segment)
     }
+  }
+
+  /** 黑窗口显示的表情占位符： [表情 [id]]，无 id 时显示 [表情] */
+  fun formatFace(id: String?): String = if (id.isNullOrBlank()) "[表情]" else "[表情 [$id]]"
+
+  /** 黑窗口显示的图片占位符，格式仿 CQ 码： [arona:image,url=...] / [arona:image,file=...] */
+  fun formatImage(image: MessageSegment.Image): String = when {
+    image.url != null -> "[arona:image,url=${image.url}]"
+    image.file != null -> "[arona:image,file=${image.file}]"
+    else -> "[arona:image]"
+  }
+
+  fun extractSegments(event: OneBotEvent): List<MessageSegment> {
+    val message = event.message
+    if (message != null && message.isJsonArray) {
+      return message.asJsonArray.mapNotNull { element ->
+        if (!element.isJsonObject) return@mapNotNull null
+        val segment = element.asJsonObject
+        val type = segment.get("type")?.asString ?: return@mapNotNull null
+        val data = segment.getAsJsonObject("data") ?: JsonObject()
+        when (type) {
+          "text" -> MessageSegment.Text(data.get("text")?.asString.orEmpty())
+          "at" -> data.get("qq")?.asLong?.let(MessageSegment::At)
+          "image" -> MessageSegment.Image(
+            url = data.get("url")?.asString,
+            file = data.get("file")?.asString,
+          )
+          "face" -> MessageSegment.Text(formatFace(data.get("id")?.asString))
+          else -> null
+        }
+      }
+    }
+    return decodeCqMessage(event.rawMessage.orEmpty())
+  }
+
+  private fun decodeCqMessage(raw: String): List<MessageSegment> {
+    val result = mutableListOf<MessageSegment>()
+    val pattern = Regex("""\[CQ:([a-z]+)((?:,[a-zA-Z0-9_-]+=[^,\]]*)*)\]""")
+    val keyValue = Regex("""([a-zA-Z0-9_-]+)=([^,\]]*)""")
+    var index = 0
+    pattern.findAll(raw).forEach { match ->
+      if (match.range.first > index) {
+        result.add(MessageSegment.Text(raw.substring(index, match.range.first)))
+      }
+      val type = match.groupValues[1]
+      val params = keyValue.findAll(match.groupValues[2])
+        .associate { it.groupValues[1] to it.groupValues[2] }
+      when (type) {
+        "at" -> params["qq"]?.toLongOrNull()?.let { result.add(MessageSegment.At(it)) }
+        "image" -> result.add(MessageSegment.Image(file = params["file"], url = params["url"]))
+        "face" -> result.add(MessageSegment.Text(formatFace(params["id"])))
+        else -> result.add(MessageSegment.Text(match.value))
+      }
+      index = match.range.last + 1
+    }
+    if (index < raw.length) result.add(MessageSegment.Text(raw.substring(index)))
+    return result
   }
 
   private fun parseEvent(json: JsonObject) = OneBotEvent(

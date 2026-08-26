@@ -4,9 +4,9 @@
  */
 package net.diyigemt.arona.db.data.schaledb
 
-import net.diyigemt.arona.Arona
 import net.diyigemt.arona.db.DB
 import net.diyigemt.arona.db.DataBaseProvider
+import net.diyigemt.arona.runtime.RuntimeLog
 import org.jetbrains.exposed.sql.SchemaUtils
 
 /**
@@ -19,8 +19,8 @@ object SchaleDataBase {
     kotlin.runCatching {
       initDataBase()
     }.onFailure {
-      Arona.warning(it.toString())
-      Arona.warning("数据库修改操作失败，删除当前库重建")
+      RuntimeLog.warning(it.toString())
+      RuntimeLog.warning("数据库修改操作失败，删除当前库重建")
       deleteDataBase()
       initDataBase()
     }

@@ -1,55 +1,69 @@
-package net.diyigemt.arona.onebot
+﻿package net.diyigemt.arona.onebot
 
 import com.google.gson.JsonObject
 import java.util.concurrent.CopyOnWriteArrayList
 
 class OneBotApplication(
   val config: OneBotConfig,
-  private val eventHandler: OneBotBusinessHandler = StandaloneBusinessHandler(config),
+  private val eventHandler: OneBotBusinessHandler,
 ) {
   private val connections = CopyOnWriteArrayList<OneBotConnection>()
-  private var httpApiServer: OneBotHttpApiServer? = null
+  private val httpApiServers = CopyOnWriteArrayList<OneBotHttpApiServer>()
+
+  private fun runtimeConfig(name: String, endpoint: ConnectionConfig) = OneBotConnectionConfig(
+    name = name,
+    type = ConnectionType.fromName(name),
+    endpoint = endpoint,
+  )
 
   fun start() {
-    startWs(config.ws)
-    startWs(config.wsReverse)
-    if (config.http.enable) {
-      if (config.http.type == ConnectionType.FORWARD) {
-        httpApiServer = OneBotHttpApiServer(config.http, eventHandler)
-        runCatching { httpApiServer?.start() }
-          .onFailure { println("[OneBot] failed to start HTTP API: ${it.message}") }
-      }
-    }
-    if (config.httpReverse.enable) {
-      val connection = OneBotHttpReverseConnection(config.httpReverse, eventHandler)
-      connections += connection
-      runCatching { connection.start() }
-        .onFailure { connections -= connection; println("[OneBot] failed to start reverse HTTP: ${it.message}") }
+    config.connections.filterValues { it.enable }.forEach { (name, endpoint) ->
+      val runtime = runtimeConfig(name, endpoint)
+      println("[OneBot] 启动连接 ${runtime.type.displayName}: ${address(runtime)}")
+      runCatching {
+        when (runtime.type) {
+          ConnectionType.WEBSOCKET -> startConnection(OneBotWsForwardConnection(runtime, eventHandler))
+          ConnectionType.WEBSOCKET_REVERSE -> startConnection(OneBotWsReverseConnection(runtime, eventHandler))
+          ConnectionType.HTTP -> {
+            val server = OneBotHttpApiServer(runtime, eventHandler)
+            server.start()
+            httpApiServers += server
+          }
+          ConnectionType.HTTP_REVERSE -> startConnection(OneBotHttpReverseConnection(runtime, eventHandler))
+        }
+      }.onFailure { println("[OneBot] ${runtime.type.displayName} 启动失败: ${it.message}") }
     }
   }
 
-  private fun startWs(endpoint: EndpointConfig) {
-    if (!endpoint.enable) return
-    val connection = if (endpoint.type == ConnectionType.REVERSE) {
-      OneBotWsReverseConnection(endpoint, eventHandler)
-    } else {
-      OneBotWsForwardConnection(endpoint, eventHandler)
-    }
+  private fun address(runtime: OneBotConnectionConfig): String = when (runtime.type) {
+    ConnectionType.WEBSOCKET, ConnectionType.HTTP_REVERSE -> runtime.endpoint.url
+    ConnectionType.WEBSOCKET_REVERSE, ConnectionType.HTTP ->
+      "${runtime.endpoint.host}:${runtime.endpoint.port}${runtime.endpoint.path}"
+  }
+
+  private fun startConnection(connection: OneBotConnection) {
     connections += connection
     runCatching { connection.start() }
-      .onFailure { connections -= connection; println("[OneBot] failed to start WS: ${it.message}") }
+      .onFailure { connections -= connection; throw it }
   }
 
   fun stop() {
     connections.forEach { runCatching { it.stop() } }
     connections.clear()
-    httpApiServer?.stop()
-    httpApiServer = null
+    httpApiServers.forEach { it.stop() }
+    httpApiServers.clear()
+    (eventHandler as? AutoCloseable)?.close()
   }
 
-  fun send(action: OneBotAction) = connections.firstOrNull()?.send(action)
+  fun firstConnection(): OneBotConnection? = connections.firstOrNull()
+
+  fun send(action: OneBotAction) = firstConnection()?.send(action)
 
   fun broadcast(event: JsonObject) {
     connections.forEach { it.broadcast(event) }
+  }
+
+  fun broadcastExcept(event: JsonObject, except: OneBotConnection?) {
+    connections.forEach { if (it !== except) it.broadcast(event) }
   }
 }

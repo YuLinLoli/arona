@@ -1,4 +1,4 @@
-package net.diyigemt.arona.onebot
+﻿package net.diyigemt.arona.onebot
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -9,16 +9,17 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 abstract class AbstractOneBotConnection(
-  protected val config: EndpointConfig,
+  protected val config: OneBotConnectionConfig,
   private val eventHandler: OneBotEventHandler,
 ) : OneBotConnection {
   protected val pending = ConcurrentHashMap<String, CompletableFuture<OneBotActionResponse?>>()
   protected val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { task ->
     Thread(task, "arona-onebot-heartbeat").apply { isDaemon = true }
   }
+  @Volatile
+  private var heartbeatScheduled = false
 
   protected fun receive(payload: String) {
-    println("[OneBot receive] $payload")
     val parsed = OneBotProtocol.parsePayload(payload) ?: return
     when (parsed) {
       is ParsedPayload.Event -> eventHandler.onEvent(parsed.value, this)
@@ -42,7 +43,8 @@ abstract class AbstractOneBotConnection(
   }
 
   protected fun scheduleHeartbeat() {
-    if (config.heartbeatInterval <= 0) return
+    if (config.heartbeatInterval <= 0 || heartbeatScheduled) return
+    heartbeatScheduled = true
     scheduler.scheduleAtFixedRate({
       runCatching {
         val params = JsonObject().apply {
@@ -50,7 +52,7 @@ abstract class AbstractOneBotConnection(
           addProperty("good", true)
         }
         send(OneBotProtocol.action("get_status", params))
-      }.onFailure { println("[OneBot heartbeat] ${it.message}") }
+      }
     }, config.heartbeatInterval, config.heartbeatInterval, TimeUnit.MILLISECONDS)
   }
 
@@ -64,4 +66,3 @@ abstract class AbstractOneBotConnection(
 
   override fun stop() { scheduler.shutdownNow() }
 }
-

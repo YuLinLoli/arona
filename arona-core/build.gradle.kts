@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "net.diyigemt"
-version = "1.1.12"
+version = "1.2.2-onebotAndMirai"
 val exposedVersion = "0.38.2"
 val sqliteVersion = "3.36.0.3"
 val quartzVersion = "2.3.2"
@@ -55,6 +55,7 @@ dependencies {
   implementation("org.apache.logging.log4j:log4j-core:2.18.0")
   implementation("org.slf4j:slf4j-api:1.7.36")
   implementation("com.google.code.gson:gson:2.9.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.5.0")
   implementation("org.java-websocket:Java-WebSocket:1.5.6")
   // https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy
   implementation("me.xdrop:fuzzywuzzy:1.4.0")
@@ -76,4 +77,23 @@ tasks.register<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("stan
   from(sourceSets.main.get().output)
   configurations = listOf(project.configurations.runtimeClasspath.get())
   manifest { attributes["Main-Class"] = "net.diyigemt.arona.standalone.AronaStandalone" }
+}
+
+// 一个 jar 既可作为 Mirai Console 插件加载，也可直接 java -jar 独立运行，
+// 因此禁用 Mirai 官方 buildPlugin，不再产出 .mirai2.jar。
+// buildPlugin 由 mirai-console 插件在 afterEvaluate 中注册，因此这里也在 afterEvaluate 中配置。
+project.afterEvaluate {
+  tasks.named("buildPlugin") { enabled = false }
+  tasks.register<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("buildOnebotAndMiraiPlugin") {
+    group = "mirai"
+    archiveFileName.set("arona-${project.version}-all.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("mirai"))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    // 编译产物与资源（含 META-INF/services 插件注册）
+    from(sourceSets.main.get().output)
+    // 全部运行时依赖，保证 java -jar 独立运行不缺类
+    configurations = listOf(project.configurations.runtimeClasspath.get())
+    exclude { file -> file.name.endsWith(".SF", ignoreCase = true) }
+    manifest { attributes["Main-Class"] = "net.diyigemt.arona.standalone.AronaStandalone" }
+  }
 }

@@ -13,6 +13,7 @@ import net.diyigemt.arona.entity.GameKeeDAO
 import net.diyigemt.arona.entity.GameKeeEntryResponse
 import net.diyigemt.arona.entity.GameKeeContentResponse
 import net.diyigemt.arona.entity.ServerLocale
+import net.diyigemt.arona.runtime.RuntimeLog
 import org.jsoup.Jsoup
 import java.io.File
 import java.util.*
@@ -38,10 +39,10 @@ object GameKeeUtil {
       ?: throw IllegalStateException("GameKee schedule note entry not found")
     val cacheDirectory = cacheDirectory("schedule-note")
     getCachedImages(cacheDirectory, contentId)?.let {
-      net.diyigemt.arona.Arona.info("[GameKee] 日程笔记：命中缓存，准备发送缓存图片，contentId=$contentId，数量=${it.size}")
+      RuntimeLog.infoGreen("[GameKee] 日程笔记：命中缓存，准备发送缓存图片，contentId=$contentId，数量=${it.size}")
       return it
     }
-    net.diyigemt.arona.Arona.info("[GameKee] 日程笔记：无缓存或 contentId 已变化，正在从 GameKee 提取，contentId=$contentId")
+    RuntimeLog.infoGreen("[GameKee] 日程笔记：无缓存或 contentId 已变化，正在从 GameKee 提取，contentId=$contentId")
 
     val referer = "https://www.gamekee.com/ba/${contentId}.html"
     val detail = Gson().fromJson(
@@ -107,11 +108,11 @@ object GameKeeUtil {
       ?: throw IllegalStateException("GameKee activity guide not found: $guideName")
     val cacheDirectory = cacheDirectory("activity-guides/$server")
     getCachedImages(cacheDirectory, contentId)?.let {
-      net.diyigemt.arona.Arona.info("[GameKee] $guideName：命中缓存，准备发送缓存图片，contentId=$contentId，数量=${it.size}")
+      RuntimeLog.infoGreen("[GameKee] $guideName：命中缓存，准备发送缓存图片，contentId=$contentId，数量=${it.size}")
       return it
     }
 
-    net.diyigemt.arona.Arona.info("[GameKee] $guideName：无缓存，去 GameKee 提取图片，contentId=$contentId")
+    RuntimeLog.infoGreen("[GameKee] $guideName：无缓存，去 GameKee 提取图片，contentId=$contentId")
     val referer = "https://www.gamekee.com/ba/${contentId}.html"
     val detailResponse = NetworkUtil.request(Jsoup.connect("$entryTreeUrl1$contentId"))
       .headers(gameKeeHeaders(referer))
@@ -133,7 +134,7 @@ object GameKeeUtil {
     GameKeeEntryResponse::class.java
   )
 
-  private fun cacheDirectory(path: String): File = net.diyigemt.arona.Arona.dataFolderFile("/image/gamekee/$path").apply { mkdirs() }
+  private fun cacheDirectory(path: String): File = GeneralUtils.localImageFile("/gamekee/$path").apply { mkdirs() }
 
   private fun getCachedImages(directory: File, contentId: Int): List<File>? {
     val files = directory.listFiles()?.filter { it.isFile && it.name.substringBefore("-") == contentId.toString() }

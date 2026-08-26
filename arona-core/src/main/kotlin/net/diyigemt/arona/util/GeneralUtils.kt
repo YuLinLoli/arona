@@ -5,15 +5,15 @@
 package net.diyigemt.arona.util
 
 import net.diyigemt.arona.Arona
-import net.diyigemt.arona.command.CallMeCommand
 import net.diyigemt.arona.command.TarotCommand
 import net.diyigemt.arona.command.TrainerCommand
-import net.diyigemt.arona.config.AronaConfig
 import net.diyigemt.arona.db.DataBaseProvider.query
 import net.diyigemt.arona.db.image.ImageTable
 import net.diyigemt.arona.db.image.ImageTableModel
 import net.diyigemt.arona.db.name.TeacherName
 import net.diyigemt.arona.db.name.TeacherNameTable
+import net.diyigemt.arona.runtime.RuntimeConfig
+import net.diyigemt.arona.runtime.RuntimeServices
 import net.diyigemt.arona.entity.FuzzyImageResult
 import net.diyigemt.arona.entity.ImageRequestResult
 import net.diyigemt.arona.interfaces.InitializedFunction
@@ -27,6 +27,7 @@ import net.mamoe.mirai.contact.nameCardOrNick
 import org.jetbrains.exposed.sql.and
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.ThreadLocalRandom
 
 // 中文说明：定义 GeneralUtils 对象，集中提供本文件的共享功能。
 object GeneralUtils : InitializedFunction() {
@@ -38,7 +39,7 @@ object GeneralUtils : InitializedFunction() {
   const val CONFIG_FOLDER: String = "/config"
 
   fun checkService(group: Contact?): Boolean = when (group) {
-    is Group -> AronaConfig.groups.contains(group.id)
+    is Group -> RuntimeConfig.groups.contains(group.id)
     else -> false
   }
 
@@ -50,18 +51,24 @@ object GeneralUtils : InitializedFunction() {
   }
 
   fun queryTeacherNameFromDB(contact: Contact, user: UserOrBot): String {
-    if (!CallMeCommand.enable) return user.nameCardOrNick
+    if (!RuntimeConfig.callMeEnabled) return user.nameCardOrNick
     val name = query {
       TeacherName.find { (TeacherNameTable.group eq contact.id) and (TeacherNameTable.id eq user.id) }.firstOrNull()
     }?.name ?: user.nameCardOrNick
-    return if (AronaConfig.endWithSensei.isNotBlank() && !name.endsWith(AronaConfig.endWithSensei)) "${name}${AronaConfig.endWithSensei}" else name
+    return if (RuntimeConfig.endWithSensei.isNotBlank() && !name.endsWith(RuntimeConfig.endWithSensei)) "${name}${RuntimeConfig.endWithSensei}" else name
   }
 
-  fun randomInt(bound: Int): Int = (System.currentTimeMillis() % bound).toInt()
-
-  fun randomBoolean(): Boolean = System.currentTimeMillis().toString().let {
-    it.substring(it.length - 1).toInt() % 2 == 0
+  fun queryTeacherNameFromDB(groupId: Long, userId: Long, fallbackName: String): String {
+    if (!RuntimeConfig.callMeEnabled) return fallbackName
+    val name = query {
+      TeacherName.find { (TeacherNameTable.group eq groupId) and (TeacherNameTable.id eq userId) }.firstOrNull()
+    }?.name ?: fallbackName
+    return if (RuntimeConfig.endWithSensei.isNotBlank() && !name.endsWith(RuntimeConfig.endWithSensei)) "${name}${RuntimeConfig.endWithSensei}" else name
   }
+
+  fun randomInt(bound: Int): Int = ThreadLocalRandom.current().nextInt(bound)
+
+  fun randomBoolean(): Boolean = ThreadLocalRandom.current().nextBoolean()
 
   /**
    * 向后端请求图片 更新本地图片数据库并下载
@@ -103,7 +110,11 @@ object GeneralUtils : InitializedFunction() {
       kotlin.runCatching {
         imageRequest(imageResult.path, localFile)
       }.onFailure {
-        Arona.sendMessageToAdmin("在下载图片${imageResult.name}时失败,请查看控制台报错信息")
+        if (RuntimeServices.isStandalone) {
+          net.diyigemt.arona.runtime.RuntimeLog.warning("在下载图片${imageResult.name}时失败,请查看控制台报错信息")
+        } else {
+          Arona.sendMessageToAdmin("在下载图片${imageResult.name}时失败,请查看控制台报错信息")
+        }
         it.printStackTrace()
         throw it
       }
@@ -128,7 +139,11 @@ object GeneralUtils : InitializedFunction() {
         kotlin.runCatching {
           imageRequest(imageResult.path, localFile)
         }.onFailure {
-          Arona.sendMessageToAdmin("在下载图片${imageResult.name}时失败,请查看控制台报错信息")
+          if (RuntimeServices.isStandalone) {
+            net.diyigemt.arona.runtime.RuntimeLog.warning("在下载图片${imageResult.name}时失败,请查看控制台报错信息")
+          } else {
+            Arona.sendMessageToAdmin("在下载图片${imageResult.name}时失败,请查看控制台报错信息")
+          }
           return ImageRequestResult()
         }
         // 更新hash
@@ -154,7 +169,14 @@ object GeneralUtils : InitializedFunction() {
 
   fun imageRequest(path: String, localFile: File): File = downloadImageFile(path, localFile)
 
-  private fun imageFileFolder(subFolder: String = "") = Arona.dataFolderPath(BACKEND_IMAGE_FOLDER) + subFolder
+  private fun imageFileFolder(subFolder: String = ""): String {
+    val root = RuntimeServices.dataRoot
+    return if (root != null) {
+      root.resolve("image").resolve(subFolder.trimStart('/')).toString()
+    } else {
+      Arona.dataFolderPath(BACKEND_IMAGE_FOLDER) + subFolder
+    }
+  }
 
   fun localImageFile(path: String) =
     File(imageFileFolder(path.let { return@let if (path.startsWith("/")) path else "/$it" }))
@@ -165,6 +187,10 @@ object GeneralUtils : InitializedFunction() {
     File(imageFileFolder(TrainerCommand.StudentRankFolder)).also { it.mkdirs() }
     File(imageFileFolder(TrainerCommand.OtherFolder)).also { it.mkdirs() }
     File(imageFileFolder(TarotCommand.TarotImageFolder)).also { it.mkdirs() }
-    File(Arona.dataFolderPath(CONFIG_FOLDER)).also { it.mkdirs() }
+    if (RuntimeServices.isStandalone) {
+      RuntimeServices.dataRoot?.resolve("config")?.toFile()?.also { it.mkdirs() }
+    } else {
+      File(Arona.dataFolderPath(CONFIG_FOLDER)).also { it.mkdirs() }
+    }
   }
 }

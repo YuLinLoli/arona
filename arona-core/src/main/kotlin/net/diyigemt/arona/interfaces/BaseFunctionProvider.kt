@@ -6,6 +6,8 @@ package net.diyigemt.arona.interfaces
 
 import kotlinx.coroutines.*
 import net.diyigemt.arona.Arona
+import net.diyigemt.arona.runtime.RuntimeLog
+import net.diyigemt.arona.runtime.RuntimeServices
 import kotlin.coroutines.CoroutineContext
 
 // 中文说明：定义 BaseFunctionProvider 类型，用于封装本模块的数据或处理行为。
@@ -13,7 +15,7 @@ abstract class BaseFunctionProvider(ctx: CoroutineContext? = null): CoroutineSco
 
   abstract val tag: String
   final override val coroutineContext: CoroutineContext
-    get() = SupervisorJob(Arona.coroutineContext.job)
+    get() = SupervisorJob(if (RuntimeServices.isStandalone) null else Arona.coroutineContext.job)
 
   init {
     if(ctx != null) {
@@ -25,19 +27,19 @@ abstract class BaseFunctionProvider(ctx: CoroutineContext? = null): CoroutineSco
 
   @Suppress("NOTHING_TO_INLINE")
   inline fun warning(text: String) {
-    Arona.warning { "$tag: $text" }
+    if (RuntimeServices.isStandalone) RuntimeLog.warning("$tag: $text") else Arona.warning { "$tag: $text" }
   }
   @Suppress("NOTHING_TO_INLINE")
   inline fun error(text: String) {
-    Arona.error { "$tag: $text" }
+    if (RuntimeServices.isStandalone) RuntimeLog.error("$tag: $text") else Arona.error { "$tag: $text" }
   }
   @Suppress("NOTHING_TO_INLINE")
   inline fun info(text: String) {
-    Arona.info { "$tag: $text" }
+    if (RuntimeServices.isStandalone) RuntimeLog.info("$tag: $text") else Arona.info { "$tag: $text" }
   }
   @Suppress("NOTHING_TO_INLINE")
   inline fun verbose(text: String) {
-    Arona.verbose { "$tag: $text" }
+    if (RuntimeServices.isStandalone) RuntimeLog.verbose("$tag: $text") else Arona.verbose { "$tag: $text" }
   }
 
   fun start() : Job = this.launch(context = this.coroutineContext) { main() }

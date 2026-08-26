@@ -7,9 +7,9 @@
 package net.diyigemt.arona.util
 
 import net.diyigemt.arona.command.cache.GachaCache
-import net.diyigemt.arona.config.AronaGachaConfig
 import net.diyigemt.arona.db.DataBaseProvider
 import net.diyigemt.arona.db.gacha.*
+import net.diyigemt.arona.runtime.RuntimeGachaConfig
 import org.jetbrains.exposed.sql.and
 
 // 中文说明：定义 GachaUtil 对象，集中提供本文件的共享功能。
@@ -17,9 +17,9 @@ object GachaUtil {
   private const val star = "★"
 
   fun pickup(): GachaCharacter {
-    val maxDot = pow10(AronaGachaConfig.maxDot)
-    val star1Rate = (AronaGachaConfig.star1Rate * maxDot).toInt()
-    val star2Rate = (AronaGachaConfig.star2Rate * maxDot).toInt()
+    val maxDot = pow10(RuntimeGachaConfig.maxDot)
+    val star1Rate = (RuntimeGachaConfig.star1Rate * maxDot).toInt()
+    val star2Rate = (RuntimeGachaConfig.star2Rate * maxDot).toInt()
     return when ((0 until 100 * maxDot).random()) {
       in (0 until star1Rate) -> pickup1()
       in (star1Rate until (star1Rate + star2Rate)) -> pickup2()
@@ -28,27 +28,27 @@ object GachaUtil {
   }
 
   private fun pickup3(): GachaCharacter {
-    val maxDot = pow10(AronaGachaConfig.maxDot)
+    val maxDot = pow10(RuntimeGachaConfig.maxDot)
     val star3List = GachaCache.star3List
     val star3PickupList = GachaCache.star3PickupList
-    val star3Rate = (AronaGachaConfig.star3Rate * maxDot).toInt()
-    val star3PickupRate = (AronaGachaConfig.star3PickupRate * maxDot).toInt()
+    val star3Rate = (RuntimeGachaConfig.star3Rate * maxDot).toInt()
+    val star3PickupRate = (RuntimeGachaConfig.star3PickupRate * maxDot).toInt()
     return pickup(star3List, star3PickupList, star3Rate, star3PickupRate)
   }
 
   fun pickup2(): GachaCharacter {
-    val maxDot = pow10(AronaGachaConfig.maxDot)
+    val maxDot = pow10(RuntimeGachaConfig.maxDot)
     val star2List = GachaCache.star2List
     val star2PickupList = GachaCache.star2PickupList
-    val star2Rate = (AronaGachaConfig.star2Rate * maxDot).toInt()
-    val star2PickupRate = (AronaGachaConfig.star2PickupRate * maxDot).toInt()
+    val star2Rate = (RuntimeGachaConfig.star2Rate * maxDot).toInt()
+    val star2PickupRate = (RuntimeGachaConfig.star2PickupRate * maxDot).toInt()
     return pickup(star2List, star2PickupList, star2Rate, star2PickupRate)
   }
 
   private fun pickup1(): GachaCharacter {
-    val maxDot = pow10(AronaGachaConfig.maxDot)
+    val maxDot = pow10(RuntimeGachaConfig.maxDot)
     val star1List = GachaCache.star1List
-    val star1Rate = (AronaGachaConfig.star1Rate * maxDot).toInt()
+    val star1Rate = (RuntimeGachaConfig.star1Rate * maxDot).toInt()
     return pickup(star1List, null, star1Rate)
   }
 
@@ -65,7 +65,7 @@ object GachaUtil {
 
   fun checkTime(userId: Long, group: Long, time: Int = 10): Int {
     GachaLimitTable.update()
-    val limit = AronaGachaConfig.limit
+    val limit = RuntimeGachaConfig.limit
     if (limit == 0) return time
     val record = getLimit(userId, group)
     val history = record.count
@@ -99,7 +99,7 @@ object GachaUtil {
     }
   }
 
-  fun getHistory(userId: Long, group0: Long, targetPool: Int = AronaGachaConfig.activePool): GachaHistory = DataBaseProvider.query {
+  fun getHistory(userId: Long, group0: Long, targetPool: Int = RuntimeGachaConfig.activePool): GachaHistory = DataBaseProvider.query {
     val findList =
       GachaHistory.find { (GachaHistoryTable.id eq userId) and (GachaHistoryTable.pool eq targetPool) and (GachaHistoryTable.group eq group0) }
         .toList()
@@ -113,7 +113,7 @@ object GachaUtil {
     findList[0]
   }!!
 
-  fun updateHistory(userId: Long, group: Long, pool: Int = AronaGachaConfig.activePool, addPoints: Int = 10, addCount3: Int = 0, dog: Boolean = false) {
+  fun updateHistory(userId: Long, group: Long, pool: Int = RuntimeGachaConfig.activePool, addPoints: Int = 10, addCount3: Int = 0, dog: Boolean = false) {
     DataBaseProvider.query {
       val target =
         GachaHistory.find { (GachaHistoryTable.id eq userId) and (GachaHistoryTable.pool eq pool) and (GachaHistoryTable.group eq group) }
@@ -126,13 +126,13 @@ object GachaUtil {
     }
   }
 
-  fun getDogCall(group: Long, pool: Int = AronaGachaConfig.activePool): List<GachaHistory> = DataBaseProvider.query {
+  fun getDogCall(group: Long, pool: Int = RuntimeGachaConfig.activePool): List<GachaHistory> = DataBaseProvider.query {
     GachaHistory.find { (GachaHistoryTable.pool eq pool) and (GachaHistoryTable.group eq group) }.toList()
       .sortedBy { it.dog }
   }!!
 
 
-  fun getHistoryAll(group: Long, pool: Int = AronaGachaConfig.activePool) = DataBaseProvider.query {
+  fun getHistoryAll(group: Long, pool: Int = RuntimeGachaConfig.activePool) = DataBaseProvider.query {
     GachaHistory.find { (GachaHistoryTable.pool eq pool) and (GachaHistoryTable.group eq group) }.toList().sortedBy {
       if (it.count3 == 0) 999 else it.points / it.count3
     }

@@ -6,10 +6,12 @@ package net.diyigemt.arona.util
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import net.diyigemt.arona.Arona
+import net.diyigemt.arona.cg.BuildConfig
 import net.diyigemt.arona.config.AronaConfig
 import net.diyigemt.arona.entity.ImageResult
 import net.diyigemt.arona.entity.ServerResponse
+import net.diyigemt.arona.runtime.RuntimeConfig
+import net.diyigemt.arona.runtime.RuntimeLog
 import net.diyigemt.arona.util.sys.SysStatic
 import net.mamoe.mirai.console.plugin.version
 import org.jsoup.Connection
@@ -40,21 +42,24 @@ object NetworkUtil {
     val sysSave = SysDataUtil.get(SysStatic.UUID)
     if (sysSave == null) {
       // 清除旧的配置文件
+      RuntimeConfig.uuid = ""
       AronaConfig.uuid = ""
       safeNetworkWithoutId(NetworkUtil::registerInstance0)
         .onSuccess {
           val header = it.header(AUTH_HEADER)
           if (header.isNullOrBlank()) {
-            Arona.warning("register failure")
+            RuntimeLog.warning("register failure")
             return
           }
           SysDataUtil.saveRegisterData(header)
+          RuntimeConfig.uuid = header
           AronaConfig.uuid = header
-          Arona.info("register success")
+          RuntimeLog.info("register success")
         }.onFailure {
-          Arona.warning("register failure")
+          RuntimeLog.warning("register failure")
         }
     } else {
+      RuntimeConfig.uuid = sysSave
       AronaConfig.uuid = sysSave
     }
   }
@@ -79,7 +84,7 @@ object NetworkUtil {
   }
 
   private fun safeNetwork(func: KFunction<Response>): Result<Response> {
-    if (AronaConfig.uuid.isEmpty()) {
+    if (RuntimeConfig.uuid.isEmpty()) {
       return kotlin.runCatching { throw Exception() }
     }
     return safeNetworkWithoutId(func)
@@ -125,16 +130,16 @@ object NetworkUtil {
 
 
   private fun requestWithAuth(conn: Connection): Connection = request(conn)
-    .header(AUTH_HEADER, AronaConfig.uuid)
-    .header(VERSION_HEADER, Arona.version.toString())
+    .header(AUTH_HEADER, RuntimeConfig.uuid)
+    .header(VERSION_HEADER, BuildConfig.version)
 
   fun request(conn: Connection): Connection {
     conn
       .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36")
       .ignoreContentType(true)
       .maxBodySize(1024 * 1024 * 15)
-    if (AronaConfig.proxyHost.isNotEmpty() && AronaConfig.proxyPort > 0) {
-      conn.proxy(AronaConfig.proxyHost, AronaConfig.proxyPort)
+    if (RuntimeConfig.proxyHost.isNotEmpty() && RuntimeConfig.proxyPort > 0) {
+      conn.proxy(RuntimeConfig.proxyHost, RuntimeConfig.proxyPort)
     }
     return conn
   }
@@ -147,6 +152,7 @@ object NetworkUtil {
 
   fun downloadCDNFile(path: String, localFile: File): File {
     val connection = cdnRequest(path)
+    connection.timeout(60000)
     return writeFile(localFile, connection);
   }
 
@@ -156,6 +162,7 @@ object NetworkUtil {
   }
 
   private fun writeFile(localFile: File, conn: Connection): File {
+    localFile.parentFile?.mkdirs()
     val stream = conn.execute().bodyStream()
     val buffer = ByteArray(1024)
     val byteOutputStream = ByteArrayOutputStream()

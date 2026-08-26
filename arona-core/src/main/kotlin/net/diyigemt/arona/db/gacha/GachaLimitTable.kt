@@ -4,8 +4,8 @@
  */
 package net.diyigemt.arona.db.gacha
 
-import net.diyigemt.arona.config.AronaGachaConfig
 import net.diyigemt.arona.db.DataBaseProvider
+import net.diyigemt.arona.runtime.RuntimeGachaConfig
 import net.diyigemt.arona.util.TimeUtil
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
@@ -24,8 +24,8 @@ object GachaLimitTable: IdTable<Long>(name = "GachaLimit") {
 
   fun update() {
     val today = TimeUtil.today()
-    if (AronaGachaConfig.day == today) return
-    AronaGachaConfig.day = today
+    if (RuntimeGachaConfig.day == today) return
+    RuntimeGachaConfig.day = today
     forceUpdate()
   }
 

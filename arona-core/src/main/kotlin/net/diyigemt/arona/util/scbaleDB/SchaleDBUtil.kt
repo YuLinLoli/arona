@@ -33,6 +33,8 @@ object SchaleDBUtil {
 
   fun getJPBirthdayData(): List<Activity> = getBirthdayData(ServerLocale.JP)
 
+  fun getCNBirthdayData(): List<Activity> = getBirthdayData(ServerLocale.CN)
+
   private fun getData(type : ServerLocale) : Pair<MutableList<Activity>, MutableList<Activity>>{
     val active: MutableList<Activity> = mutableListOf()
     val pending: MutableList<Activity> = mutableListOf()

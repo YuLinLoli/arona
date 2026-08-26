@@ -17,6 +17,7 @@ import net.diyigemt.arona.db.gacha.*
 import net.diyigemt.arona.remote.RemoteServiceAction
 import net.diyigemt.arona.remote.action.GachaCharacter
 import net.diyigemt.arona.remote.action.GachaPoolUpdateData
+import net.diyigemt.arona.runtime.RuntimeGachaConfig
 import net.diyigemt.arona.service.AronaManageService
 import net.diyigemt.arona.util.GachaUtil
 import net.diyigemt.arona.util.NetworkUtil
@@ -64,6 +65,7 @@ object GachaConfigCommand : CompositeCommand(
     AronaGachaConfig.star1Rate = rate
     subject.sendMessage("1星出货率设置为${rate}%")
     AronaGachaConfig.init()
+    RuntimeGachaConfig.syncFromPlugin()
   }
 
   @SubCommand("2s")
@@ -72,6 +74,7 @@ object GachaConfigCommand : CompositeCommand(
     AronaGachaConfig.star2Rate = rate
     subject.sendMessage("2星出货率设置为${rate}%")
     AronaGachaConfig.init()
+    RuntimeGachaConfig.syncFromPlugin()
   }
   @SubCommand("3s")
   @Description("设置3星出货率")
@@ -79,6 +82,7 @@ object GachaConfigCommand : CompositeCommand(
     AronaGachaConfig.star3Rate = rate
     subject.sendMessage("3星出货率设置为${rate}%")
     AronaGachaConfig.init()
+    RuntimeGachaConfig.syncFromPlugin()
   }
 
   @SubCommand("p2s")
@@ -87,6 +91,7 @@ object GachaConfigCommand : CompositeCommand(
     AronaGachaConfig.star2PickupRate = rate
     subject.sendMessage("2星PickUp出货率设置为${rate}%")
     AronaGachaConfig.init()
+    RuntimeGachaConfig.syncFromPlugin()
   }
 
   @SubCommand("p3s")
@@ -95,6 +100,7 @@ object GachaConfigCommand : CompositeCommand(
     AronaGachaConfig.star3PickupRate = rate
     subject.sendMessage("3星PickUp出货率设置为${rate}%")
     AronaGachaConfig.init()
+    RuntimeGachaConfig.syncFromPlugin()
   }
 
   @SubCommand("time")
@@ -108,6 +114,7 @@ object GachaConfigCommand : CompositeCommand(
       subject.sendMessage("关闭抽卡结果撤回")
     }
     AronaGachaConfig.init()
+    RuntimeGachaConfig.syncFromPlugin()
   }
 
   @SubCommand("limit")
@@ -121,6 +128,7 @@ object GachaConfigCommand : CompositeCommand(
       subject.sendMessage("每日限制次数设置为不限制每日抽卡次数")
     }
     AronaGachaConfig.init()
+    RuntimeGachaConfig.syncFromPlugin()
   }
 
 

@@ -22,14 +22,21 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 // 中文说明：定义 CommonDAO 类型，用于封装本模块的数据或处理行为。
 data class CommonDAO(
 //  val GachaGroup : List<GachaGroup>,
-  var regions : List<Regions> = mutableListOf(Regions(null), Regions(null)),
+  var regions : List<Regions> = mutableListOf(Regions(null), Regions(null), Regions(null)),
 //  val changelog : List<ChangeLog>
 ) : BaseDAO{
   override fun sendToDataBase(){
-    var isJPN = true
     //删表重填
     DataBaseProvider.query(DB.DATA.ordinal) { CurrentData.deleteAll() }
-    for (item in regions){
+    for ((index, item) in regions.withIndex()){
+      // 新版 config.json 的 Regions 带 Name 字段, 据此确定服务器; 旧数据无 Name 时按顺序兜底
+      val serverName = when (item.abbreviation?.lowercase()) {
+        "jp", "jpn" -> "JPN"
+        "gl", "glb", "global" -> "GLB"
+        "cn" -> "CN"
+        else -> getServer(index == 0)
+      }
+      val isJPN = serverName == "JPN"
       //characters
       for (chaPool in item.current_gacha){
         for (cha in chaPool.characters){
@@ -37,7 +44,7 @@ data class CommonDAO(
             CurrentData.insert {
               it[value] = cha
               it[type] = SchaleDBDataSyncService.DataBaseType.STUDENT.name
-              it[server] = item.abbreviation ?: getServer(isJPN)
+              it[server] = serverName
               it[start] = chaPool.start
               it[end] = chaPool.end
             }
@@ -51,7 +58,7 @@ data class CommonDAO(
           CurrentData.insert {
             it[value] = event.event
             it[type] = SchaleDBDataSyncService.DataBaseType.EVENT.name
-            it[server] = item.abbreviation ?: getServer(isJPN)
+              it[server] = serverName
             it[start] = event.start
             it[end] = event.end
           }
@@ -64,7 +71,7 @@ data class CommonDAO(
           CurrentData.insert {
             it[value] = raid.raid
             it[type] = SchaleDBDataSyncService.DataBaseType.RAID.name
-            it[server] = item.abbreviation ?: getServer(isJPN)
+              it[server] = serverName
             it[start] = raid.start
             it[end] = raid.end
           }
@@ -76,7 +83,6 @@ data class CommonDAO(
         }
       }
 
-      isJPN = isJPN.not()
     }
   }
 

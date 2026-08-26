@@ -10,6 +10,10 @@ data class Activity(
   var time: String,
   var type: ActivityType = ActivityType.NULL,
   var serverLocale: ServerLocale = ServerLocale.JP,
+  /** 活动开始时间戳(毫秒), 用于写入活动日历数据库 */
+  var startTime: Long = 0,
+  /** 活动结束时间戳(毫秒), 用于写入活动日历数据库 */
+  var endTime: Long = 0,
 )
 
 // 中文说明：定义 ServerLocale 类型，用于封装本模块的数据或处理行为。

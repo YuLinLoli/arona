@@ -4,10 +4,12 @@
  */
 package net.diyigemt.arona.command.cache
 
-import net.diyigemt.arona.Arona
 import net.diyigemt.arona.config.AronaGachaConfig
 import net.diyigemt.arona.db.DataBaseProvider.query
 import net.diyigemt.arona.db.gacha.*
+import net.diyigemt.arona.runtime.RuntimeGachaConfig
+import net.diyigemt.arona.runtime.RuntimeLog
+import net.diyigemt.arona.runtime.RuntimeServices
 import org.jetbrains.exposed.sql.select
 
 
@@ -22,7 +24,7 @@ object GachaCache {
 
   fun init() {
     updateData()
-    Arona.info("arona gacha module init success.")
+    RuntimeLog.info("arona gacha module init success.")
   }
 
   fun updatePool(pool: Int): GachaPool? {
@@ -30,7 +32,8 @@ object GachaCache {
       GachaPool.findById(pool)
     } ?: return null
     if (!updateLimitData(pool)) return null
-    AronaGachaConfig.activePool = pool
+    RuntimeGachaConfig.activePool = pool
+    if (!RuntimeServices.isStandalone) AronaGachaConfig.activePool = pool
     return targetPool
   }
 
@@ -41,7 +44,7 @@ object GachaCache {
     star1List = all.filter { it.star == 1 }.toMutableList()
     star2List = all.filter { it.star == 2 }.toMutableList()
     star3List = all.filter { it.star == 3 }.toMutableList()
-    updateLimitData(AronaGachaConfig.activePool)
+    updateLimitData(RuntimeGachaConfig.activePool)
   }
 
   private fun updateLimitData(pool: Int): Boolean {
