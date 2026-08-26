@@ -2,7 +2,7 @@
 
 <h3>一切开发旨在学习，请勿用于非法用途</h3>
 
-<h3>请仔细观看使用帮助！！[使用帮助](https://github.com/YuLinLoli/arona/blob/1.2.0-testonebot/HELP.md)</h3>
+<h3>请仔细观看使用帮助！！ [使用帮助](https://github.com/YuLinLoli/arona/blob/1.2.0-testonebot/HELP.md) </h3>
 
 - arona 是一款免费且开放源代码的软件，仅供学习和娱乐用途使用。
 - arona 不会通过任何方式强制收取费用，或对使用者提出物质条件。
