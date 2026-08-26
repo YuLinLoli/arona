@@ -110,6 +110,7 @@ object Arona : KotlinPlugin(
   @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
   override fun PluginComponentStorage.onLoad() {
     contributeCommandCallParser(CommandResolver)
+    dataFolderPath
   }
 
   private fun init() {

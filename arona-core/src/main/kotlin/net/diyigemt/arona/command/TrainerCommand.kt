@@ -71,14 +71,11 @@ object TrainerCommand : SimpleCommand(
         sendMessage("获取${str}攻略失败，请稍后重试")
         return
       }
-      try {
-        if (str == "日程笔记") {
-          sendForwardImages(subject, imageFiles)
-        } else {
-          sendImages(subject, imageFiles)
-        }
-      } finally {
-        imageFiles.forEach { it.delete() }
+      Arona.info("[GameKee] 正在发送${str}图片，数量=${imageFiles.size}")
+      if (str == "日程笔记") {
+        sendForwardImages(subject, imageFiles)
+      } else {
+        sendImages(subject, imageFiles)
       }
       return
     }
