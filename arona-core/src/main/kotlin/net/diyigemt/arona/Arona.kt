@@ -25,6 +25,10 @@ import net.diyigemt.arona.handler.NudgeEventHandler
 import net.diyigemt.arona.interfaces.InitializedFunction
 import net.diyigemt.arona.quartz.QuartzProvider
 import net.diyigemt.arona.remote.RemoteServiceManager
+import net.diyigemt.arona.runtime.MessageTarget
+import net.diyigemt.arona.runtime.MiraiMessageSender
+import net.diyigemt.arona.runtime.OutgoingMessage
+import net.diyigemt.arona.runtime.RuntimeServices
 import net.diyigemt.arona.service.AronaServiceManager
 import net.diyigemt.arona.util.GeneralUtils
 import net.diyigemt.arona.util.ImageUtil
@@ -92,6 +96,7 @@ object Arona : KotlinPlugin(
         it is BotOnlineEvent && it.bot.id == AronaConfig.qq
       }.subscribeOnce<BotOnlineEvent> {
         arona = it.bot
+        RuntimeServices.messageSender = MiraiMessageSender { arona }
         if (AronaConfig.sendOnlineMessage) {
           sendMessage(deserializeMiraiCode(AronaConfig.onlineMessage))
         }
@@ -147,6 +152,7 @@ object Arona : KotlinPlugin(
     AronaEmergencyConfig.save()
     AronaTrainerConfig.save()
     AronaServiceManager.saveServiceStatus()
+    RuntimeServices.messageSender = null
   }
 
   fun runSuspend(block: suspend () -> Unit) = launch(coroutineContext) {
@@ -164,10 +170,18 @@ object Arona : KotlinPlugin(
   }
 
   fun sendMessage(message: String) {
-    runWithArona {
-      AronaConfig.groups.forEach { group0 ->
-        val group = it.groups[group0] ?: return@forEach
-        group.sendMessage(message)
+    val sender = RuntimeServices.messageSender
+    if (sender != null) {
+      runSuspend {
+        AronaConfig.groups.forEach { groupId ->
+          sender.send(MessageTarget.Group(groupId), OutgoingMessage.text(message))
+        }
+      }
+      return
+    }
+    runWithArona { bot ->
+      AronaConfig.groups.forEach { groupId ->
+        bot.groups[groupId]?.sendMessage(message)
       }
     }
   }
@@ -276,9 +290,9 @@ object Arona : KotlinPlugin(
     this.sendMessage(msg)
   }
 
-  fun dataFolderPath(subPath: String = ""): String = Arona.dataFolderPath.absolutePathString() + subPath
+  fun dataFolderPath(subPath: String = ""): String = (RuntimeServices.dataRoot ?: Arona.dataFolderPath).absolutePathString() + subPath
 
-  fun dataFolderFile(subPath: String = ""): File = File(Arona.dataFolderPath.absolutePathString() + subPath)
+  fun dataFolderFile(subPath: String = ""): File = File((RuntimeServices.dataRoot ?: Arona.dataFolderPath).absolutePathString() + subPath)
 
   suspend fun Group.sendTeacherNameMessage(user: UserOrBot, message: String) {
     val name = GeneralUtils.queryTeacherNameFromDB(this, user)

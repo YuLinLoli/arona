@@ -55,6 +55,7 @@ dependencies {
   implementation("org.apache.logging.log4j:log4j-core:2.18.0")
   implementation("org.slf4j:slf4j-api:1.7.36")
   implementation("com.google.code.gson:gson:2.9.0")
+  implementation("org.java-websocket:Java-WebSocket:1.5.6")
   // https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy
   implementation("me.xdrop:fuzzywuzzy:1.4.0")
   // https://mvnrepository.com/artifact/com.github.taptap/pinyin-plus
@@ -66,4 +67,13 @@ dependencies {
 
 tasks.test {
   useJUnitPlatform()
+}
+
+
+tasks.register<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("standaloneFatJar") {
+  archiveFileName.set("arona-standalone-${project.version}-all.jar")
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  from(sourceSets.main.get().output)
+  configurations = listOf(project.configurations.runtimeClasspath.get())
+  manifest { attributes["Main-Class"] = "net.diyigemt.arona.standalone.AronaStandalone" }
 }

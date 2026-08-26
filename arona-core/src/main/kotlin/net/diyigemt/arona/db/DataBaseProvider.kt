@@ -45,7 +45,7 @@ object DataBaseProvider {
     var tmp = Connection(null, ConnectionStatus.DISCONNECTED)
     runCatching {
       tmp = Connection(
-        Database.connect("jdbc:sqlite:${Arona.dataFolder}/${dataBaseName}", "org.sqlite.JDBC")
+        Database.connect("jdbc:sqlite:${Arona.dataFolderFile("/$dataBaseName").absolutePath}", "org.sqlite.JDBC")
       )
     }.onFailure {
       databaseConnectionList.add(tmp) //失败也插入，否则ID就串行了
