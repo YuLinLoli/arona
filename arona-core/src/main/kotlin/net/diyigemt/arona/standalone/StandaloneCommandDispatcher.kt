@@ -11,6 +11,7 @@ import net.diyigemt.arona.runtime.OutgoingMessage
 import net.diyigemt.arona.runtime.RuntimeServices
 import net.diyigemt.arona.runtime.SimpleCommandDispatcher
 import net.diyigemt.arona.service.AronaServiceManager
+import net.diyigemt.arona.standalone.commands.StandaloneConfigCommand
 import net.diyigemt.arona.standalone.commands.StandaloneActivity
 import net.diyigemt.arona.standalone.commands.StandaloneTrainer
 import net.diyigemt.arona.standalone.commands.StandaloneEmergencyStop
@@ -77,6 +78,10 @@ class StandaloneCommandDispatcher(
       CommandRegistration(
         setOf("/紧急停止", "emergency_stop"), "非管理员投票制停止服务",
         GuardedHandler(StandaloneServices.EMERGENCY_STOP) { context -> emergencyStop.vote(context) },
+      ),
+      CommandRegistration(
+        setOf("/config", "config"), "查看/修改 Arona 配置",
+        ArgumentGuardedHandler(StandaloneServices.CONFIG) { context, args -> StandaloneConfigCommand.handle(context, args) },
       ),
       CommandRegistration(
         setOf("/抽卡", "gacha"), "抽卡配置管理",
@@ -153,6 +158,7 @@ class StandaloneCommandDispatcher(
     appendLine("/游戏名 /谁是 /叫我 - 名字记录")
     appendLine("/塔罗牌 /活动 /攻略 - 娱乐与攻略查询")
     appendLine("/紧急停止 - 投票停止服务")
+    appendLine("/config - 查看/修改配置(管理员)")
     append("/arona help - 查看本帮助")
   }
 

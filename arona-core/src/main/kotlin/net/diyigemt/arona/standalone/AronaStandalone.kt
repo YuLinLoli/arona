@@ -9,7 +9,7 @@ import net.diyigemt.arona.onebot.StandaloneBusinessHandler
 import net.diyigemt.arona.quartz.QuartzProvider
 import net.diyigemt.arona.db.DataBaseProvider
 import net.diyigemt.arona.runtime.RuntimeConfig
-import net.diyigemt.arona.runtime.AronaConfigLoader
+import net.diyigemt.arona.standalone.StandaloneAronaConfig
 import net.diyigemt.arona.runtime.RuntimeLog
 import net.diyigemt.arona.runtime.RuntimePaths
 import net.diyigemt.arona.runtime.RuntimeServices
@@ -39,15 +39,13 @@ object AronaStandalone {
     val aronaConfigFile = args.firstOrNull { it.startsWith("--arona-config=") }
       ?.substringAfter("=")
       ?.let { java.io.File(it).absoluteFile.toPath() }
-      ?: AronaConfigLoader.defaultFile()
+      ?: StandaloneAronaConfig.defaultFile()
     RuntimeServices.isStandalone = true
     RuntimeServices.dataRoot = RuntimePaths.prepareStandaloneRoot().resolve("data")
-    // 先加载业务配置（首次会从旧 onebot.yaml 迁移 groups/managers/notify），再加载协议配置（清理 onebot.yaml 残留）
-    val aronaConfig = AronaConfigLoader.load(aronaConfigFile)
+    // 先加载业务配置(含热更新, 首次会从旧 onebot.yaml 迁移 groups/managers/notify)，再加载协议配置（清理 onebot.yaml 残留）
+    StandaloneAronaConfig.init(aronaConfigFile)
     val config = OneBotConfigLoader.load(configFile)
     RuntimeConfig.botId = config.selfId
-    RuntimeConfig.groups = aronaConfig.groups
-    RuntimeConfig.managers = aronaConfig.managers
     RuntimeConfig.endWithSensei = "老师"
     RuntimeLog.info("initializing database...")
     runCatching { DataBaseProvider.start() }
@@ -61,7 +59,6 @@ object AronaStandalone {
     val commands = StandaloneCommandDispatcher(config)
     // 启用定时任务: 数据同步(每小时+启动立即执行)与每日活动推送
     // 注意: 服务本身已在 StandaloneServices 中登记, 这里直接启用 Quartz 任务, 不再重复注册
-    StandaloneActivityNotify.notifyConfig = aronaConfig.notify
     runCatching { SchaleDBDataSyncService.enableService() }
       .onFailure { RuntimeLog.warning("启用数据同步服务失败: ${it.message}") }
     runCatching { StandaloneActivityNotify.enableService() }

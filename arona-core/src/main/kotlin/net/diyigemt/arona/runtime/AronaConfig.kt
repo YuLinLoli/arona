@@ -9,7 +9,7 @@ import java.nio.file.Path
 
 /**
  * 独立模式的 Arona 业务配置（非 OneBot 协议配置）。
- * OneBot 连接配置放在 onebot.yaml，本配置放在 jar 同级 arona-standalone/arona.yaml。
+ * OneBot 连接配置放在 onebot.yml，本配置放在 jar 同级 arona-standalone/arona.yml。
  */
 @Serializable
 data class AronaConfig(
@@ -43,7 +43,16 @@ object AronaConfigLoader {
   fun load(file: Path = defaultFile()): AronaConfig {
     Files.createDirectories(file.parent)
     if (Files.notExists(file)) {
-      // 首次生成: 尝试从旧的 onebot.yaml 迁移 groups/managers/notify, 避免用户配置丢失
+      // 1) 旧后缀 arona.yaml 已存在则迁移
+      val oldArona = file.parent.resolve("arona.yaml")
+      if (Files.exists(oldArona)) {
+        runCatching { parse(oldArona) }.getOrNull()?.let { config ->
+          save(file, config)
+          println("[Arona] 检测到旧版 arona.yaml，已迁移到 ${file.fileName}")
+          return config
+        }
+      }
+      // 2) 最早版本从旧的 onebot.yaml 迁移 groups/managers/notify, 避免用户配置丢失
       val legacy = readLegacyFromOneBot(onebotFile(file))
       val config = AronaConfig(
         groups = legacy?.groups ?: emptyList(),
@@ -53,11 +62,15 @@ object AronaConfigLoader {
       save(file, config)
       return config
     }
+    return parse(file)
+  }
+
+  private fun parse(file: Path): AronaConfig {
     val text = String(Files.readAllBytes(file), StandardCharsets.UTF_8).removePrefix("\uFEFF")
     return runCatching {
       Yaml.Default.decodeFromString(AronaConfig.serializer(), text)
     }.getOrElse { error ->
-      throw IllegalArgumentException("arona.yaml 解析失败，请检查格式（参考同目录说明）: ${error.message}", error)
+      throw IllegalArgumentException("arona.yml 解析失败，请检查格式（参考同目录说明）: ${error.message}", error)
     }
   }
 
@@ -66,9 +79,9 @@ object AronaConfigLoader {
     Files.newBufferedWriter(file, StandardCharsets.UTF_8).use { it.write(template(config)) }
   }
 
-  fun defaultFile(): Path = RuntimePaths.prepareStandaloneRoot().resolve("arona.yaml")
+  fun defaultFile(): Path = RuntimePaths.prepareStandaloneRoot().resolve("arona.yml")
 
-  /** 旧版 onebot.yaml 中可能存在的业务字段 */
+  /** 旧版 onebot.yml 中可能存在的业务字段 */
   @Serializable
   private data class LegacyOneBotExtra(
     val groups: List<Long> = emptyList(),
@@ -99,13 +112,18 @@ object AronaConfigLoader {
     }.getOrNull()
   }
 
-  private fun onebotFile(arona: Path): Path = arona.parent.resolve("onebot.yaml")
+  private fun onebotFile(arona: Path): Path {
+    // 优先读新后缀，兼容旧版 onebot.yaml
+    val newFile = arona.parent.resolve("onebot.yml")
+    if (Files.exists(newFile)) return newFile
+    return arona.parent.resolve("onebot.yaml")
+  }
 
   private fun template(config: AronaConfig) = buildString {
     appendLine("# ==================== Arona 业务配置 ====================")
     appendLine("# 独立运行模式（java -jar arona-standalone-xxx-all.jar）使用本文件。")
-    appendLine("# 文件位置：与 jar 同级的 arona-standalone/arona.yaml，修改后重启生效。")
-    appendLine("# OneBot 协议连接配置见同目录 onebot.yaml；本文件只放非 OneBot 的业务配置。")
+    appendLine("# 文件位置：与 jar 同级的 arona-standalone/arona.yml，修改后保存即自动热重载。")
+    appendLine("# OneBot 协议连接配置见同目录 onebot.yml；本文件只放非 OneBot 的业务配置。")
     appendLine("# 作为 Mirai Console 插件运行时本文件不生效，插件仍使用 Mirai 自己的配置目录。")
     appendLine()
     appendLine("# 允许响应的群号列表，留空表示响应所有群")

@@ -67,26 +67,40 @@ object OneBotConfigLoader {
   fun load(file: Path = defaultFile()): OneBotConfig {
     Files.createDirectories(file.parent)
     if (Files.notExists(file)) {
+      // 旧后缀 onebot.yaml 已存在则迁移
+      val oldFile = file.parent.resolve("onebot.yaml")
+      if (Files.exists(oldFile)) {
+        runCatching { parse(oldFile) }.getOrNull()?.let { config ->
+          save(file, config)
+          println("[OneBot] 检测到旧版 onebot.yaml，已迁移到 ${file.fileName}")
+          return config
+        }
+      }
       val config = OneBotConfig()
       save(file, config)
       return config
     }
+
+    return parse(file)
+  }
+
+  private fun parse(file: Path): OneBotConfig {
     val text = String(Files.readAllBytes(file), StandardCharsets.UTF_8).removePrefix("\uFEFF")
     val parsed = runCatching {
-      // 旧版 onebot.yaml 可能残留 groups/managers/notify 等业务字段, 先转成动态 Map 剔除后再反序列化
+      // 旧版 onebot.yml 可能残留 groups/managers/notify 等业务字段, 先转成动态 Map 剔除后再反序列化
       val map = Yaml.Default.decodeMapFromString(text).toMutableMap()
       map.remove("groups")
       map.remove("managers")
       map.remove("notify")
       Yaml.Default.decodeFromString(OneBotConfig.serializer(), Yaml.Default.encodeToString(map))
     }.getOrElse { error ->
-      throw IllegalArgumentException("onebot.yaml 解析失败，请检查格式（参考同目录说明）: ${error.message}", error)
+      throw IllegalArgumentException("onebot.yml 解析失败，请检查格式（参考同目录说明）: ${error.message}", error)
     }
     val legacyRemoved = Yaml.Default.decodeMapFromString(text).keys.any { it in setOf("groups", "managers", "notify") }
     if (legacyRemoved) {
-      // 业务字段统一由 arona.yaml 管理，检测到残留则重写为标准模板，避免用户困惑
+      // 业务字段统一由 arona.yml 管理，检测到残留则重写为标准模板，避免用户困惑
       save(file, parsed)
-      println("[OneBot] 检测到 onebot.yaml 中的 groups/managers/notify 残留，已移除，请统一在 arona.yaml 中配置")
+      println("[OneBot] 检测到 onebot.yml 中的 groups/managers/notify 残留，已移除，请统一在 arona.yml 中配置")
     }
     parsed.connections.keys.forEach { ConnectionType.fromName(it) }
     return parsed
@@ -100,7 +114,7 @@ object OneBotConfigLoader {
   private fun template(config: OneBotConfig) = buildString {
     appendLine("# ==================== Arona OneBot 配置文件 ====================")
     appendLine("# 独立运行模式（java -jar arona-standalone-xxx-all.jar）使用本文件。")
-    appendLine("# 文件位置：与 jar 同级的 arona-standalone/onebot.yaml，修改后重启生效。")
+    appendLine("# 文件位置：与 jar 同级的 arona-standalone/onebot.yml，修改后重启生效。")
     appendLine("# 作为 Mirai Console 插件运行时本文件不生效，插件仍使用 Mirai 自己的配置目录。")
     appendLine()
     appendLine("# 机器人 QQ 号，用于 get_login_info 等 API 的返回")
@@ -152,5 +166,5 @@ object OneBotConfigLoader {
 
   private fun yamlString(value: String): String = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
-  fun defaultFile(): Path = RuntimePaths.prepareStandaloneRoot().resolve("onebot.yaml")
+  fun defaultFile(): Path = RuntimePaths.prepareStandaloneRoot().resolve("onebot.yml")
 }

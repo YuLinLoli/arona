@@ -12,12 +12,14 @@
 
 （启动后20秒立即向配置文件中启用的群发送‘三服活动日历’）
 
-- `arona-standalone/onebot.yaml`（OneBot 协议连接配置）
-- `arona-standalone/arona.yaml`（Arona 业务配置：群、管理员、每日推送）
+- `arona-standalone/onebot.yml`（OneBot 协议连接配置）
+- `arona-standalone/arona.yml`（Arona 业务配置：群、管理员、每日推送）
 - `arona-standalone/images/`
 - `arona-standalone/data/`
 
 Mirai Console 插件入口 `net.diyigemt.arona.Arona` 保持不变；插件模式仍使用 Mirai Console 自己的配置目录，不读取这些文件。
+
+插件模式仍使用 Mirai Console 自己的配置目录中的 `arona.yml`（`AutoSavePluginConfig("arona")` 原配置，格式不变）。管理员可用 `/config` 指令查看/修改该配置并热更新：`/config` 以合并转发查看全部配置，`/config <配置名> <值>` 修改后自动保存并重载。
 
 ## 配置结构
 
@@ -39,12 +41,14 @@ Mirai Console 插件入口 `net.diyigemt.arona.Arona` 保持不变；插件模�
 - `heartbeat_interval`：心跳间隔（毫秒），0 表示关闭心跳。
 - `reconnect_interval`：正向连接失败重试间隔（毫秒）。
 
-## 业务配置 arona.yaml
+## 业务配置 arona.yml
 
-`groups`、`managers`、`notify` 等非 OneBot 业务配置独立放在 `arona-standalone/arona.yaml`，与 `onebot.yaml` 分开，避免混淆
+`groups`、`managers`、`notify` 等非 OneBot 业务配置独立放在 `arona-standalone/arona.yml`，与 `onebot.yml` 分开，避免混淆
 
 
-首次启动若检测到旧版 `onebot.yaml` 里还残留 `groups/managers/notify`，会自动迁移到 `arona.yaml`，旧文件里的协议配置不受影响。
+首次启动若检测到旧版 `onebot.yml` 里还残留 `groups/managers/notify`，会自动迁移到 `arona.yml`，旧文件里的协议配置不受影响。
+
+`arona.yml` 支持热重载：修改保存后会自动重新加载（`groups`/`managers`/`notify` 立即生效，`every_day_hour` 变更会重建每日推送定时任务），无需重启。旧版 `arona.yaml`/`onebot.yaml` 首次启动会自动迁移到 `.yml`。
 
 ## 每日活动推送
 
@@ -86,6 +90,7 @@ Mirai Console 插件入口 `net.diyigemt.arona.Arona` 保持不变；插件模�
 - `/攻略 日服活动|国际服活动|国服活动|日程笔记`：拉取 GameKee 活动攻略与日程笔记图片。
 - `/攻略 <学生名>`：查询学生立绘/攻略图（首次会下载到 `data/image/student_rank`）。
 - `/抽卡 list|setpool|reset|1s|2s|3s|p2s|p3s|time|limit|update`：抽卡配置管理（管理员）。
+- `/config`：查看全部配置（合并转发）；`/config <配置名>` 查看单个；`/config <配置名> <值>` 修改配置并热重载（管理员）。
 - `/紧急停止`：非管理员投票制停用全部服务（默认 5 票 / 5 分钟）。
 - `/arona service list|enable <名称>|disable <名称>`：服务启停（管理操作需管理员）。
 
