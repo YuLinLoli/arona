@@ -122,13 +122,7 @@ object Arona : KotlinPlugin(
     dataFolderPath
   }
 
-  private fun init() {
-    AronaConfig.reload()
-    AronaGachaConfig.init()
-    RuntimeLog.infoDelegate = { logger.info(it) }
-    RuntimeLog.warningDelegate = { logger.warning(it) }
-    RuntimeLog.errorDelegate = { logger.error(it) }
-    RuntimeLog.verboseDelegate = { logger.verbose(it) }
+  private fun syncRuntimeConfig() {
     RuntimeConfig.botId = AronaConfig.qq
     RuntimeConfig.groups = AronaConfig.groups.toList()
     RuntimeConfig.managers = AronaConfig.managerGroup.toList()
@@ -137,6 +131,22 @@ object Arona : KotlinPlugin(
     RuntimeConfig.proxyHost = AronaConfig.proxyHost
     RuntimeConfig.proxyPort = AronaConfig.proxyPort
     RuntimeGachaConfig.syncFromPlugin()
+  }
+
+  /** 重新加载 arona 配置并同步运行期配置，供 /config 指令热更新后调用 */
+  fun reloadAronaConfig() {
+    AronaConfig.reload()
+    syncRuntimeConfig()
+  }
+
+  private fun init() {
+    AronaConfig.reload()
+    AronaGachaConfig.init()
+    RuntimeLog.infoDelegate = { logger.info(it) }
+    RuntimeLog.warningDelegate = { logger.warning(it) }
+    RuntimeLog.errorDelegate = { logger.error(it) }
+    RuntimeLog.verboseDelegate = { logger.verbose(it) }
+    syncRuntimeConfig()
     AronaNudgeConfig.reload()
     AronaHentaiConfig.reload()
     AronaRepeatConfig.reload()

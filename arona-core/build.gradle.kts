@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "net.diyigemt"
-version = "1.2.2-onebotAndMirai"
+version = "1.2.3-onebotAndMirai"
 val exposedVersion = "0.38.2"
 val sqliteVersion = "3.36.0.3"
 val quartzVersion = "2.3.2"

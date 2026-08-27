@@ -7,18 +7,90 @@ package net.diyigemt.arona.command
 import net.diyigemt.arona.Arona
 import net.diyigemt.arona.service.AronaManageService
 import net.diyigemt.arona.service.AronaServiceManager
+import net.diyigemt.arona.config.AronaConfig
+import net.diyigemt.arona.runtime.ConfigValueParser
+import net.mamoe.mirai.console.data.Value
+import net.mamoe.mirai.console.data.ValueDescription
+import net.mamoe.mirai.message.data.ForwardMessageBuilder
+import net.mamoe.mirai.message.data.PlainText
+import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.command.UserCommandSender
 import net.mamoe.mirai.contact.Contact
 
 // 中文说明：定义 AronaConfigCommand 对象，集中提供本文件的共享功能。
+@OptIn(ConsoleExperimentalApi::class)
 object AronaConfigCommand: CompositeCommand(
   Arona,
   "config",
   "配置",
   description = "配置arona运行状态"
 ), AronaManageService {
+  @SubCommand
+  @Description("查看arona全部配置")
+  suspend fun UserCommandSender.configDefault() {
+    val bot = Arona.arona
+    if (bot == null) {
+      sendMessage("机器人尚未上线，无法转发配置")
+      return
+    }
+    val builder = ForwardMessageBuilder(subject)
+    builder.add(bot, PlainText(buildString {
+      appendLine("Arona 全部配置")
+      appendLine("修改: /config <配置名> <值>")
+    }))
+    AronaConfig.valueNodes.forEach { node ->
+      val value = node.value.value
+      val desc = node.annotations.filterIsInstance<ValueDescription>().firstOrNull()?.value.orEmpty()
+      builder.add(bot, PlainText(buildString {
+        appendLine("【${node.valueName}】$value")
+        if (desc.isNotBlank()) {
+          appendLine("说明: $desc")
+        }
+      }))
+    }
+    sendMessage(builder.build())
+  }
+
+  @SubCommand
+  @Description("查看单个配置: /config <配置名>")
+  suspend fun UserCommandSender.configShow(name: String) {
+    val node = AronaConfig.valueNodes.firstOrNull { it.valueName.equals(name.trim(), ignoreCase = true) }
+    if (node == null) {
+      sendMessage("未找到配置项: $name")
+      return
+    }
+    val value = node.value.value
+    val desc = node.annotations.filterIsInstance<ValueDescription>().firstOrNull()?.value.orEmpty()
+    sendMessage(buildString {
+      appendLine("【${node.valueName}】$value")
+      if (desc.isNotBlank()) {
+        appendLine("说明: $desc")
+      }
+    })
+  }
+
+  @SubCommand
+  @Description("修改配置: /config <配置名> <值>")
+  @Suppress("UNCHECKED_CAST")
+  suspend fun UserCommandSender.configSet(name: String, value: String) {
+    val node = AronaConfig.valueNodes.firstOrNull { it.valueName.equals(name.trim(), ignoreCase = true) }
+    if (node == null) {
+      sendMessage("未找到配置项: $name")
+      return
+    }
+    val parsed = runCatching { ConfigValueParser.parse(value.trim(), node.value.value) }
+      .getOrElse {
+        sendMessage("配置值解析失败: ${it.message}")
+        return
+      }
+    (node.value as Value<Any?>).value = parsed
+    // AutoSavePluginConfig 自动保存是防抖延迟的，先立即落盘再重载，避免 reload 读回旧值
+    Arona.run { AronaConfig.save() }
+    Arona.reloadAronaConfig()
+    sendMessage("配置已更新: ${node.valueName} = ${node.value.value}")
+  }
 
   @SubCommand("启用")
   @Description("启用一个功能模块")

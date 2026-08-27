@@ -15,6 +15,7 @@ class StandaloneServiceInfo(
 
 object StandaloneServices {
   val GACHA_CONFIG = StandaloneServiceInfo(1, "抽卡配置", adminOnly = true)
+  val CONFIG = StandaloneServiceInfo(23, "配置管理", adminOnly = true)
   val ACTIVITY = StandaloneServiceInfo(3, "活动查询")
   val ACTIVITY_NOTIFY = StandaloneServiceInfo(12, "活动推送")
   val DATA_SYNC = StandaloneServiceInfo(19, "数据同步服务")
@@ -30,6 +31,7 @@ object StandaloneServices {
   val GAME_NAME_SEARCH = StandaloneServiceInfo(22, "游戏名反查")
 
   val all: List<StandaloneServiceInfo> = listOf(
+    CONFIG,
     GACHA_CONFIG,
     ACTIVITY,
     ACTIVITY_NOTIFY,
