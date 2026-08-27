@@ -39,7 +39,10 @@ class StandaloneBusinessHandler(
     }
     val text = OneBotProtocol.extractText(event).trim()
     val userId = event.userId ?: return
-    if (text.isEmpty() || !isAllowedGroup(event.groupId)) return
+    if (text.isEmpty()) return
+    val isAdmin = userId in net.diyigemt.arona.runtime.RuntimeConfig.managers
+    // 非服务群只放行管理员，方便管理员用 /config groups add 添加服务群
+    if (!isAdmin && !isAllowedGroup(event.groupId)) return
     val senderName = event.sender?.get("card")?.asString?.takeIf(String::isNotBlank)
       ?: event.sender?.get("nickname")?.asString
     val context = CommandContext(
@@ -47,7 +50,7 @@ class StandaloneBusinessHandler(
       groupId = event.groupId,
       text = text,
       senderName = senderName,
-      isAdmin = userId in net.diyigemt.arona.runtime.RuntimeConfig.managers,
+      isAdmin = isAdmin,
       messageSender = OneBotMessageSender({ connection }, config.selfId),
     )
     scope.launch {

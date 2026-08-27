@@ -80,6 +80,10 @@ object AronaServiceManager: InitializedFunction() {
     !service.enable -> {
       "功能未启用"
     }
+    // 管理指令先校验管理员权限：管理员在非服务群也放行，便于用 /config groups add 添加服务群
+    (service is AronaManageService) && (!service.checkAdmin(user, subject)) -> {
+      "权限不足"
+    }
     service is AronaGroupService -> when {
       subject !is Group -> {
         Arona.runSuspend {
@@ -90,11 +94,8 @@ object AronaServiceManager: InitializedFunction() {
       !GeneralUtils.checkService(subject) -> "非服务群聊"
       else -> null
     }
-    // 防止在非服务群聊中也执行非群服务指令
-    subject is Group && !GeneralUtils.checkService(subject) -> "非服务群聊"
-    (service is AronaManageService) && (!service.checkAdmin(user, subject)) -> {
-      "权限不足"
-    }
+    // 防止在非服务群聊中也执行非群服务指令（管理指令已在上方对管理员放行）
+    subject is Group && service !is AronaManageService && !GeneralUtils.checkService(subject) -> "非服务群聊"
     else -> null
   }
 

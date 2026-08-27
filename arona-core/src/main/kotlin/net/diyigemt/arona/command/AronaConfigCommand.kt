@@ -18,6 +18,7 @@ import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.command.UserCommandSender
 import net.mamoe.mirai.contact.Contact
+import net.mamoe.mirai.contact.Group
 
 // 中文说明：定义 AronaConfigCommand 对象，集中提供本文件的共享功能。
 @OptIn(ConsoleExperimentalApi::class)
@@ -89,7 +90,66 @@ object AronaConfigCommand: CompositeCommand(
     // AutoSavePluginConfig 自动保存是防抖延迟的，先立即落盘再重载，避免 reload 读回旧值
     Arona.run { AronaConfig.save() }
     Arona.reloadAronaConfig()
-    sendMessage("配置已更新: ${node.valueName} = ${node.value.value}")
+    // 群聊不回显修改后的配置内容，防止配置泄漏；私聊可完整回显
+    if (subject is Group) {
+      sendMessage("配置已更新: ${node.valueName}")
+    } else {
+      sendMessage("配置已更新: ${node.valueName} = ${node.value.value}")
+    }
+  }
+
+  @SubCommand("groups")
+  @Description("增删服务群: /config groups add|del [群号]，群内可省略群号")
+  suspend fun UserCommandSender.configGroups(action: String, value: Long? = null) {
+    mutateList("groups", action, value)
+  }
+
+  @SubCommand("managers", "managerGroup")
+  @Description("增删管理员: /config managers add|del [QQ号]")
+  suspend fun UserCommandSender.configManagers(action: String, value: Long? = null) {
+    mutateList("managerGroup", action, value)
+  }
+
+  private suspend fun UserCommandSender.mutateList(nodeName: String, action: String, value: Long?) {
+    val node = AronaConfig.valueNodes.firstOrNull { it.valueName.equals(nodeName, ignoreCase = true) }
+    if (node == null) {
+      sendMessage("未找到配置项: $nodeName")
+      return
+    }
+    val isAdd = action.equals("add", ignoreCase = true)
+    if (!isAdd && !action.equals("del", ignoreCase = true)) {
+      sendMessage("用法: /config $nodeName add|del [数值]")
+      return
+    }
+    val current = node.value.value
+    if (current !is List<*>) {
+      sendMessage("该配置项不是列表: $nodeName")
+      return
+    }
+    val target = value ?: (subject as? Group)?.id
+    if (target == null) {
+      sendMessage("请在群里发送 /config $nodeName $action，或指定要操作的数值")
+      return
+    }
+    @Suppress("UNCHECKED_CAST")
+    val list = current as List<Long>
+    if (isAdd && target in list) {
+      sendMessage("$nodeName 已包含 $target")
+      return
+    }
+    if (!isAdd && target !in list) {
+      sendMessage("$nodeName 不包含 $target")
+      return
+    }
+    @Suppress("UNCHECKED_CAST")
+    (node.value as Value<Any?>).value = if (isAdd) list + target else list - target
+    Arona.run { AronaConfig.save() }
+    Arona.reloadAronaConfig()
+    if (subject is Group) {
+      sendMessage("配置已更新: $nodeName")
+    } else {
+      sendMessage("配置已更新: $nodeName = ${node.value.value}")
+    }
   }
 
   @SubCommand("启用")
