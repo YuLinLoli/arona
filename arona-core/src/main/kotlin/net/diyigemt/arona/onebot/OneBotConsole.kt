@@ -52,30 +52,35 @@ object OneBotConsole {
       ?: "未知"
     val sender = "$senderName(${event.userId ?: "?"})"
     val text = OneBotProtocol.extractText(event)
-    return if (event.messageType == "group" && event.groupId != null) {
-      val group = if (groupName.isNullOrBlank()) event.groupId.toString() else "$groupName(${event.groupId})"
-      "V/Bot.$selfId: [$group] $sender -> $text"
-    } else {
-      "V/Bot.$selfId: $sender -> $text"
-    }
+    // 黑窗口可能无法显示彩色 emoji，人名/群名/聊天内容统一降级为 [emoji:编号]
+    return ConsoleEmoji.sanitize(
+      if (event.messageType == "group" && event.groupId != null) {
+        val group = if (groupName.isNullOrBlank()) event.groupId.toString() else "$groupName(${event.groupId})"
+        "V/Bot.$selfId: [$group] $sender -> $text"
+      } else {
+        "V/Bot.$selfId: $sender -> $text"
+      }
+    )
   }
 
-  internal fun formatOutgoing(message: OutgoingMessage): String = message.segments.joinToString("") { segment ->
-    when (segment) {
-      is MessageSegment.Text -> segment.value
-      is MessageSegment.At -> "[at:qq=${segment.userId}]"
-      is MessageSegment.Forward -> "[合并转发:${segment.title}]"
-      is MessageSegment.Image -> when {
-        segment.data != null -> {
-          val base64 = java.util.Base64.getEncoder().encodeToString(segment.data)
-          "[arona:image,url=base64://${truncate(base64)}]"
+  internal fun formatOutgoing(message: OutgoingMessage): String = ConsoleEmoji.sanitize(
+    message.segments.joinToString("") { segment ->
+      when (segment) {
+        is MessageSegment.Text -> segment.value
+        is MessageSegment.At -> "[at:qq=${segment.userId}]"
+        is MessageSegment.Forward -> "[合并转发:${segment.title}]"
+        is MessageSegment.Image -> when {
+          segment.data != null -> {
+            val base64 = java.util.Base64.getEncoder().encodeToString(segment.data)
+            "[arona:image,url=base64://${truncate(base64)}]"
+          }
+          segment.url != null -> "[arona:image,url=${segment.url}]"
+          segment.file != null -> "[arona:image,file=${segment.file}]"
+          else -> "[arona:image]"
         }
-        segment.url != null -> "[arona:image,url=${segment.url}]"
-        segment.file != null -> "[arona:image,file=${segment.file}]"
-        else -> "[arona:image]"
       }
     }
-  }
+  )
 
   private fun truncate(value: String, max: Int = 40): String =
     if (value.length <= max) value else value.take(max) + "..."

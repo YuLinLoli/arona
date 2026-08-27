@@ -1,6 +1,7 @@
 package net.diyigemt.arona.standalone
 
 import net.diyigemt.arona.cg.BuildConfig
+import net.diyigemt.arona.onebot.ConsoleEmoji
 import net.diyigemt.arona.onebot.OneBotApplication
 import net.diyigemt.arona.onebot.OneBotConfigLoader
 import net.diyigemt.arona.onebot.OneBotConsole
@@ -114,6 +115,7 @@ object AronaStandalone {
       System.setOut(PrintStream(FileOutputStream(FileDescriptor.out), true, "UTF-8"))
     }
     installColoredConsole()
+    ConsoleEmoji.init()
   }
 
   /** 给黑窗口输出染色： [Arona]xxx / [OneBot xxx] 统一亮绿，WARNING:xxx / SLF4J:xxx 统一亮黄 */

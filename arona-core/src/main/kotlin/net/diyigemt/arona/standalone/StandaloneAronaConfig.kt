@@ -85,8 +85,8 @@ object StandaloneAronaConfig {
     apply(newConfig)
   }
 
-  /** /config <key> <value>: 修改配置并写回文件后重载 */
-  fun update(key: String, rawValue: String): String {
+  /** /config <key> <value>: 修改配置并写回文件后重载；showValue=false 时不回显配置值（群聊防泄漏） */
+  fun update(key: String, rawValue: String, showValue: Boolean = true): String {
     val field = findField(key) ?: return "未找到配置项: $key"
     val parsed = runCatching { ConfigValueParser.parse(rawValue, field.get(config)) }
       .getOrElse { return "配置值解析失败: ${it.message}" }
@@ -95,7 +95,39 @@ object StandaloneAronaConfig {
     runCatching { AronaConfigLoader.save(path, newConfig) }
       .getOrElse { return "写入配置文件失败: ${it.message}" }
     reload()
-    return "配置已更新: ${field.key} = ${field.get(config)}"
+    return if (showValue) "配置已更新: ${field.key} = ${field.get(config)}" else "配置已更新: ${field.key}"
+  }
+
+  /** /config <key> add [value]：向列表配置项（groups/managers/notify.black_groups）追加一个值 */
+  @Suppress("UNCHECKED_CAST")
+  fun addToList(key: String, value: Long, showValue: Boolean = true): String {
+    val field = findField(key) ?: return "未找到配置项: $key"
+    val current = field.get(config)
+    if (current !is List<*>) return "该配置项不是列表: $key"
+    val list = current as List<Long>
+    if (value in list) return "${field.key} 已包含 $value"
+    val newConfig = field.set(config, list + value)
+    val path = file ?: return "配置文件尚未初始化"
+    runCatching { AronaConfigLoader.save(path, newConfig) }
+      .getOrElse { return "写入配置文件失败: ${it.message}" }
+    reload()
+    return if (showValue) "配置已更新: ${field.key} = ${field.get(config)}" else "配置已更新: ${field.key}"
+  }
+
+  /** /config <key> del [value]：从列表配置项（groups/managers/notify.black_groups）移除一个值 */
+  @Suppress("UNCHECKED_CAST")
+  fun removeFromList(key: String, value: Long, showValue: Boolean = true): String {
+    val field = findField(key) ?: return "未找到配置项: $key"
+    val current = field.get(config)
+    if (current !is List<*>) return "该配置项不是列表: $key"
+    val list = current as List<Long>
+    if (value !in list) return "${field.key} 不包含 $value"
+    val newConfig = field.set(config, list - value)
+    val path = file ?: return "配置文件尚未初始化"
+    runCatching { AronaConfigLoader.save(path, newConfig) }
+      .getOrElse { return "写入配置文件失败: ${it.message}" }
+    reload()
+    return if (showValue) "配置已更新: ${field.key} = ${field.get(config)}" else "配置已更新: ${field.key}"
   }
 
   private fun apply(newConfig: AronaConfig) {
