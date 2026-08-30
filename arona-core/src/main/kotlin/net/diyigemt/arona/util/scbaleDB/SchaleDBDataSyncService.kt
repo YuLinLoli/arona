@@ -50,6 +50,7 @@ object SchaleDBDataSyncService : AronaQuartzService{
   private const val student = "data/cn/students.min.json"
   private const val localization = "data/cn/localization.json"
   private const val raid = "data/cn/raids.min.json"
+  // TODO: resString 是共享可变状态, 定时同步与手动触发并发执行时日志字符串会互相交错, 建议改为方法内局部变量
   private var resString = ""
 
   class SchaleDBDataSyncJob : Job{

@@ -172,7 +172,7 @@ object GameKeeUtil {
   }
 
   private fun normalizeUrl(url: String): String = if (url.startsWith("//")) "https:$url" else url
-  private fun gameKeeHeaders(referer: String): Map<String, String> = mapOf(
+  internal fun gameKeeHeaders(referer: String): Map<String, String> = mapOf(
     "accept" to "application/json, text/plain, */*",
     "accept-encoding" to "gzip, deflate, br, zstd",
     "accept-language" to "zh-CN,zh;q=0.9,zh-Hans;q=0.8,und;q=0.7,zh-Hant;q=0.6,ja;q=0.5",

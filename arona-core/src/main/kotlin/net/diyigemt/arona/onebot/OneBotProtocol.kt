@@ -94,7 +94,7 @@ object OneBotProtocol {
         val data = segment.getAsJsonObject("data") ?: JsonObject()
         when (type) {
           "text" -> MessageSegment.Text(data.get("text")?.asString.orEmpty())
-          "at" -> data.get("qq")?.asLong?.let(MessageSegment::At)
+          "at" -> parseAtSegment(data.get("qq"))
           "image" -> MessageSegment.Image(
             url = data.get("url")?.asString,
             file = data.get("file")?.asString,
@@ -120,7 +120,11 @@ object OneBotProtocol {
       val params = keyValue.findAll(match.groupValues[2])
         .associate { it.groupValues[1] to it.groupValues[2] }
       when (type) {
-        "at" -> params["qq"]?.toLongOrNull()?.let { result.add(MessageSegment.At(it)) }
+        "at" -> when (val qq = params["qq"]) {
+          null -> Unit
+          "all" -> result.add(MessageSegment.Text("@全体成员"))
+          else -> qq.toLongOrNull()?.let { result.add(MessageSegment.At(it)) }
+        }
         "image" -> result.add(MessageSegment.Image(file = params["file"], url = params["url"]))
         "face" -> result.add(MessageSegment.Text(formatFace(params["id"])))
         else -> result.add(MessageSegment.Text(match.value))
@@ -131,14 +135,25 @@ object OneBotProtocol {
     return result
   }
 
+  /** 解析 at 段: qq 可能是 "all"(@全体成员) 或数字, 非法值直接忽略 */
+  private fun parseAtSegment(qq: JsonElement?): MessageSegment? {
+    val value = qq?.takeUnless(JsonElement::isJsonNull)?.asString ?: return null
+    return when {
+      value == "all" -> MessageSegment.Text("@全体成员")
+      else -> value.toLongOrNull()?.let(MessageSegment::At)
+    }
+  }
+
   private fun parseEvent(json: JsonObject) = OneBotEvent(
     time = json.long("time") ?: System.currentTimeMillis() / 1000,
     selfId = json.long("self_id") ?: 0,
     postType = json.string("post_type").orEmpty(),
+    noticeType = json.string("notice_type"),
     messageType = json.string("message_type"),
     subType = json.string("sub_type"),
     messageId = json.long("message_id"),
     userId = json.long("user_id"),
+    operatorId = json.long("operator_id"),
     groupId = json.long("group_id"),
     rawMessage = json.string("raw_message"),
     message = json.get("message"),

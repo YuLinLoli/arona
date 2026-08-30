@@ -80,16 +80,25 @@ object DataBaseProvider {
     }
   }
 
-  fun isConnected(id: Int = 0) = databaseConnectionList[id].connectionStatus == ConnectionStatus.CONNECTED
+  fun isConnected(id: Int = 0) =
+    id in databaseConnectionList.indices && databaseConnectionList[id].connectionStatus == ConnectionStatus.CONNECTED
+
+  /** 关闭并注销全部数据库连接, 供备份恢复/优雅关闭前释放文件占用 */
+  fun close() {
+    databaseConnectionList.forEach { connection ->
+      connection.db?.let { runCatching { TransactionManager.closeAndUnregister(it) } }
+    }
+    databaseConnectionList.clear()
+  }
 
   fun <T> query(db: Int = 0, block: (Transaction) -> T): T? =
-    if (databaseConnectionList[db].connectionStatus == ConnectionStatus.DISCONNECTED) {
+    if (db !in databaseConnectionList.indices || databaseConnectionList[db].connectionStatus == ConnectionStatus.DISCONNECTED) {
       RuntimeLog.error { "Database is disconnected, Any operation that requires database support cannot be performed." }
       null
     } else transaction(databaseConnectionList[db].db) { block(this) }
 
   suspend fun <T> suspendQuery(db: Int = 0, block: suspend (Transaction) -> T): T? =
-    if (databaseConnectionList[db].connectionStatus == ConnectionStatus.DISCONNECTED) {
+    if (db !in databaseConnectionList.indices || databaseConnectionList[db].connectionStatus == ConnectionStatus.DISCONNECTED) {
       RuntimeLog.error { "Database is disconnected, Any operation that requires database support cannot be performed." }
       null
     } else newSuspendedTransaction(context = Dispatchers.IO, db = databaseConnectionList[db].db) { block(this) }

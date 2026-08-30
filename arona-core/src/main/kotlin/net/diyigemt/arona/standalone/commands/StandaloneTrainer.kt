@@ -5,6 +5,8 @@
 package net.diyigemt.arona.standalone.commands
 
 import net.diyigemt.arona.entity.ImageResult
+import net.diyigemt.arona.gacha.GameKeeGachaPoolSource
+import net.diyigemt.arona.gacha.GameKeeGachaPoolSource.GachaServer
 import net.diyigemt.arona.runtime.CommandContext
 import net.diyigemt.arona.runtime.ForwardMessage
 import net.diyigemt.arona.runtime.MessageSegment
@@ -14,6 +16,9 @@ import net.diyigemt.arona.runtime.RuntimeLog
 import net.diyigemt.arona.util.GameKeeUtil
 import net.diyigemt.arona.util.GeneralUtils
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 
 object StandaloneTrainer {
@@ -29,8 +34,10 @@ object StandaloneTrainer {
   suspend fun trainer(context: CommandContext, arguments: List<String>): OutgoingMessage {
     val keyword = arguments.joinToString(" ").trim()
     if (keyword.isBlank()) {
-      return OutgoingMessage.text("用法: /攻略 日服活动|国际服活动|国服活动|日程笔记|图片关键词")
+      return OutgoingMessage.text("用法: /攻略 日服活动|国际服活动|国服活动|日程笔记|图片关键词|'日服'卡池|'国服'卡池|'国际服'卡池")
     }
+    val serverPool = parseServerPoolArg(keyword)
+    if (serverPool != null) return gachaPoolForward(serverPool)
     val guideFetcher = when (keyword) {
       "日服活动" -> GameKeeUtil::getJpActivityGuide
       "国际服活动" -> GameKeeUtil::getGlobalActivityGuide
@@ -91,6 +98,52 @@ object StandaloneTrainer {
   /** 私聊按 QQ 号、群聊按 群号+QQ 号 区分, 避免不同会话互相串台 */
   private fun selectionKey(context: CommandContext): String =
     if (context.groupId != null) "g${context.groupId}:u${context.userId}" else "p${context.userId}"
+
+  /** 三服当期卡池: 合并转发, 每个角色一个节点, 内容为 角色图 + 【角色图】/角色名/所属 文本 */
+  private fun gachaPoolForward(server: GachaServer): OutgoingMessage {
+    val characters = runCatching { GameKeeGachaPoolSource.fetchPool(server) }
+      .getOrElse { return OutgoingMessage.text("获取${server.displayName}当期卡池失败: ${it.message}") }
+    if (characters.isEmpty()) return OutgoingMessage.text("当前没有${server.displayName}的当期卡池")
+    val imageDir = GeneralUtils.localImageFile("/gacha-pool/${server.displayName}")
+    val uin = RuntimeConfig.botId
+    val nodes = characters.map { character ->
+      // 上传头图前先按角色 id 查缓存, 未命中才下载
+      val imageFile = GameKeeGachaPoolSource.findCachedImage(character.id, imageDir)
+        ?: GameKeeGachaPoolSource.downloadCharacterImage(character, imageDir)
+      val text = buildString {
+        append("【角色图：${character.imageList}】\n")
+        append("“角色名：${character.name}”\n")
+        append("“所属：${character.nameAlias}”\n")
+        append("卡池开始时间${formatPoolTime(character.startAt)}—结束时间${formatPoolTime(character.endAt)}")
+      }
+      val content = mutableListOf<MessageSegment>()
+      imageFile?.let { content += MessageSegment.Image(file = it.absolutePath) }
+      content += MessageSegment.Text(text)
+      ForwardMessage(name = "Arona", uin = uin, content = content)
+    }
+    return OutgoingMessage.forward("${server.displayName}当期卡池", nodes)
+  }
+
+  /** 卡池时间戳(秒)换算为北京时间, 0/负数视为未知 */
+  private fun formatPoolTime(epochSeconds: Long): String =
+    if (epochSeconds <= 0) "未知"
+    else Instant.ofEpochSecond(epochSeconds).atZone(ZoneId.of("Asia/Shanghai"))
+      .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+
+  /** 解析 /攻略 '日服'卡池 这类参数, 单引号内为服务器名(支持 日服/国服/国际服 与英文别名) */
+  private fun parseServerPoolArg(keyword: String): GachaServer? {
+    if (!keyword.endsWith("卡池")) return null
+    val body = keyword.removeSuffix("卡池")
+    val quotes = setOf('\'', '\u2018', '\u2019', '\uff07')
+    if (body.length < 2 || body.first() !in quotes || body.last() !in quotes) return null
+    val serverName = body.substring(1, body.length - 1)
+    return when (serverName) {
+      "日服", "JP", "jp" -> GachaServer.JP
+      "国服", "CN", "cn" -> GachaServer.CN
+      "国际服", "GLOBAL", "global" -> GachaServer.GLOBAL
+      else -> null
+    }
+  }
 
   private fun sendImages(files: List<File>, keyword: String): OutgoingMessage {
     if (files.isEmpty()) return OutgoingMessage.text("没有获取到「$keyword」的图片")

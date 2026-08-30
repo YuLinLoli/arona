@@ -9,6 +9,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import net.diyigemt.arona.runtime.CommandContext
 import net.diyigemt.arona.runtime.CommandDispatcher
+import net.diyigemt.arona.standalone.StandaloneAronaConfig
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
@@ -31,6 +32,10 @@ class StandaloneBusinessHandler(
 
   override fun onEvent(event: OneBotEvent, connection: OneBotConnection) {
     broadcast(event, connection)
+    if (event.postType == "notice") {
+      handleNotice(event)
+      return
+    }
     if (event.postType != "message") return
     if (event.messageType == "group" && event.groupId != null) {
       printGroupMessage(event, connection)
@@ -59,6 +64,30 @@ class StandaloneBusinessHandler(
           println("[Arona command error] ${error.message}")
           runCatching { context.reply("命令执行失败: ${error.message ?: "未知错误"}") }
         }
+    }
+  }
+
+  /** 群成员变动/退群等通知: 机器人被移出服务群时自动从 groups 清理 */
+  private fun handleNotice(event: OneBotEvent) {
+    val groupId = event.groupId
+    when (event.noticeType) {
+      "group_increase" -> {
+        val text = if (event.userId == config.selfId) {
+          "机器人已加入群 $groupId"
+        } else {
+          "成员 ${event.userId ?: "?"} 加入了群 ${groupId ?: "?"}"
+        }
+        OneBotConsole.printNotice(config.selfId, text)
+      }
+      "group_decrease" -> {
+        if (event.userId == config.selfId && groupId != null) {
+          OneBotConsole.printNotice(config.selfId, "机器人已被移出群 $groupId，正在从 groups 配置中移除")
+          StandaloneAronaConfig.removeGroupIfPresent(groupId)
+        } else {
+          OneBotConsole.printNotice(config.selfId, "成员 ${event.userId ?: "?"} 退出了群 ${groupId ?: "?"}")
+        }
+      }
+      else -> Unit // 其它通知类型(禁言/撤回/群名片等)暂不处理
     }
   }
 

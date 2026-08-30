@@ -7,11 +7,17 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 abstract class AbstractOneBotConnection(
   protected val config: OneBotConnectionConfig,
   private val eventHandler: OneBotEventHandler,
 ) : OneBotConnection {
+  companion object {
+    /** 动作响应超时时间: 超过仍未收到 OneBot 实现回复则主动失败并清理 pending */
+    const val ACTION_TIMEOUT_MILLIS: Long = 15_000
+  }
+
   protected val pending = ConcurrentHashMap<String, CompletableFuture<OneBotActionResponse?>>()
   protected val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { task ->
     Thread(task, "arona-onebot-heartbeat").apply { isDaemon = true }
@@ -54,6 +60,14 @@ abstract class AbstractOneBotConnection(
         send(OneBotProtocol.action("get_status", params))
       }
     }, config.heartbeatInterval, config.heartbeatInterval, TimeUnit.MILLISECONDS)
+  }
+
+  /** 登记一个等待响应的动作并设置超时, 超时后从 pending 移除并异常完成, 避免永久挂起 */
+  protected fun trackPending(echo: String, future: CompletableFuture<OneBotActionResponse?>, timeoutMillis: Long = ACTION_TIMEOUT_MILLIS) {
+    pending[echo] = future
+    scheduler.schedule({
+      pending.remove(echo)?.completeExceptionally(TimeoutException("OneBot action 响应超时: $echo"))
+    }, timeoutMillis, TimeUnit.MILLISECONDS)
   }
 
   protected fun parseJson(payload: String): JsonObject? = runCatching {

@@ -12,6 +12,8 @@ import net.diyigemt.arona.runtime.RuntimeServices
 import net.diyigemt.arona.runtime.SimpleCommandDispatcher
 import net.diyigemt.arona.service.AronaServiceManager
 import net.diyigemt.arona.standalone.commands.StandaloneConfigCommand
+import net.diyigemt.arona.standalone.commands.StandaloneTaskCommand
+import net.diyigemt.arona.standalone.commands.StandaloneBackup
 import net.diyigemt.arona.standalone.commands.StandaloneActivity
 import net.diyigemt.arona.standalone.commands.StandaloneTrainer
 import net.diyigemt.arona.standalone.commands.StandaloneEmergencyStop
@@ -87,6 +89,18 @@ class StandaloneCommandDispatcher(
         setOf("/抽卡", "gacha"), "抽卡配置管理",
         ArgumentGuardedHandler(StandaloneServices.GACHA_CONFIG) { context, args -> StandaloneGachaAdmin.handle(context, args) },
       ),
+      CommandRegistration(
+        setOf("/任务", "task"), "查看/触发定时任务(管理员)",
+        ArgumentGuardedHandler(StandaloneServices.TASK) { _, args -> StandaloneTaskCommand.handle(args) },
+      ),
+      CommandRegistration(
+        setOf("/备份", "backup"), "备份配置与数据库(管理员)",
+        ArgumentGuardedHandler(StandaloneServices.BACKUP) { _, args -> StandaloneBackup.backup(args) },
+      ),
+      CommandRegistration(
+        setOf("/恢复", "restore"), "从备份恢复配置与数据库(管理员)",
+        ArgumentGuardedHandler(StandaloneServices.BACKUP) { _, args -> StandaloneBackup.restore(args.firstOrNull()) },
+      ),
     ),
     fallbackHandler = { context ->
       // 非命令消息: 优先处理「/攻略」相近建议的数字回复
@@ -159,6 +173,7 @@ class StandaloneCommandDispatcher(
     appendLine("/塔罗牌 /活动 /攻略 - 娱乐与攻略查询")
     appendLine("/紧急停止 - 投票停止服务")
     appendLine("/config - 查看/修改配置(管理员)")
+    appendLine("/任务 /备份 /恢复 - 定时任务与备份恢复(管理员)")
     append("/arona help - 查看本帮助")
   }
 

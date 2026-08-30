@@ -3,6 +3,7 @@ package net.diyigemt.arona.standalone
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.diyigemt.arona.runtime.AronaConfig
 import net.diyigemt.arona.runtime.AronaConfigLoader
@@ -29,6 +30,9 @@ object StandaloneAronaConfig {
 
   @Volatile
   private var watcher: KWatchChannel? = null
+
+  @Volatile
+  private var watcherJob: Job? = null
 
   /** 上一次应用到的推送小时，用于检测 every_day_hour 变更后重建定时任务 */
   @Volatile
@@ -83,6 +87,26 @@ object StandaloneAronaConfig {
       return
     }
     apply(newConfig)
+  }
+
+  /** 机器人被移出群时从 groups 配置中移除该群(不存在则忽略), 并写回文件热重载 */
+  fun removeGroupIfPresent(groupId: Long) {
+    val field = findField("groups") ?: return
+    val current = field.get(config)
+    if (current !is List<*>) return
+    val list = current as List<Long>
+    if (groupId !in list) return
+    val path = file ?: return
+    runCatching { AronaConfigLoader.save(path, field.set(config, list - groupId)) }
+      .onFailure { RuntimeLog.warning("从 groups 移除群 $groupId 失败: ${it.message}") }
+    reload()
+  }
+
+  /** 停止 arona.yml 热重载监听, 供恢复备份/优雅关闭时使用 */
+  fun close() {
+    watcherJob?.cancel()
+    watcherJob = null
+    watcher = null
   }
 
   /** /config <key> <value>: 修改配置并写回文件后重载；showValue=false 时不回显配置值（群聊防泄漏） */
@@ -150,7 +174,7 @@ object StandaloneAronaConfig {
   @OptIn(DelicateCoroutinesApi::class)
   private fun startWatcher(path: Path) {
     if (watcher != null) return
-    GlobalScope.launch {
+    watcherJob = GlobalScope.launch {
       val channel = path.toFile().asWatchChannel(KWatchChannel.Mode.SingleFile)
       watcher = channel
       channel.consumeEach { event ->

@@ -53,7 +53,7 @@ class OneBotWsForwardConnection(
       result.completeExceptionally(IllegalStateException("WebSocket is not connected"))
       return result
     }
-    pending[action.echo] = result
+    trackPending(action.echo, result)
     current.send(OneBotProtocol.serialize(action))
     return result
   }

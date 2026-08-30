@@ -3,10 +3,17 @@ package net.diyigemt.arona.standalone.commands
 import net.diyigemt.arona.command.cache.GachaCache
 import net.diyigemt.arona.runtime.CommandContext
 import net.diyigemt.arona.runtime.OutgoingMessage
+import net.diyigemt.arona.runtime.RuntimeGachaConfig
 import net.diyigemt.arona.util.GachaUtil
 import net.diyigemt.arona.util.GeneralUtils
 
 object StandaloneGacha {
+  /** 抽卡结果按 revokeTime 配置延迟撤回(通过 OneBot delete_msg 实现) */
+  private fun revokeIfNeeded(message: OutgoingMessage): OutgoingMessage {
+    val millis = RuntimeGachaConfig.revokeTime * 1000L
+    return if (millis > 0) OutgoingMessage(message.segments, revokeAfterMillis = millis) else message
+  }
+
   private fun poolEmptyMessage(): String? = when {
     GachaCache.star1List.isEmpty() && GachaCache.star2List.isEmpty() && GachaCache.star3List.isEmpty() ->
       "抽卡池为空, 请先使用 /抽卡 update <id> 从远端更新卡池"
@@ -33,8 +40,8 @@ object StandaloneGacha {
     GachaUtil.updateHistory(userId, groupId, addPoints = 1, addCount3 = star3, dog = hit)
     val s = "${GachaUtil.resultData2String(result)}\n${history.points + 1} points"
     val dog = if (hit) "恭喜${teacherName},出货了呢" else ""
-    return if (dog.isEmpty()) OutgoingMessage.text(s)
-    else OutgoingMessage.at(userId) + OutgoingMessage.text("$dog\n$s")
+    return if (dog.isEmpty()) revokeIfNeeded(OutgoingMessage.text(s))
+    else revokeIfNeeded(OutgoingMessage.at(userId) + OutgoingMessage.text("$dog\n$s"))
   }
 
   suspend fun multiDraw(context: CommandContext): OutgoingMessage {
@@ -64,8 +71,8 @@ object StandaloneGacha {
     GachaUtil.updateHistory(userId, groupId, addPoints = checkTime, addCount3 = stars3, dog = hit)
     val dog = if (hit) "恭喜${teacherName},出货了呢" else ""
     val sss = "3星:$stars3 2星:$stars2 1星:$stars1 ${history.points + checkTime} points\n${s}"
-    return if (dog.isEmpty()) OutgoingMessage.text(sss)
-    else OutgoingMessage.at(userId) + OutgoingMessage.text("$dog\n$sss")
+    return if (dog.isEmpty()) revokeIfNeeded(OutgoingMessage.text(sss))
+    else revokeIfNeeded(OutgoingMessage.at(userId) + OutgoingMessage.text("$dog\n$sss"))
   }
 
   suspend fun dogRanking(context: CommandContext): OutgoingMessage {
