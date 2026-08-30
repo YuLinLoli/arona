@@ -139,6 +139,7 @@ object NetworkUtil {
       .ignoreContentType(true)
       .maxBodySize(1024 * 1024 * 15)
     if (RuntimeConfig.proxyHost.isNotEmpty() && RuntimeConfig.proxyPort > 0) {
+      // TODO: 代理配置只对 NetworkUtil 的请求生效, ActivityUtil 等 jsoup 直连请求未走代理, 海外用户可能仍无法访问
       conn.proxy(RuntimeConfig.proxyHost, RuntimeConfig.proxyPort)
     }
     return conn

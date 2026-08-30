@@ -45,6 +45,11 @@ object OneBotConsole {
     println(ANSI_YELLOW + line + ANSI_RESET)
   }
 
+  /** 打印通知类事件(群成员变动/退群等) */
+  fun printNotice(selfId: Long, text: String) {
+    println("${LocalDateTime.now().format(TIME_FORMAT)} V/Bot.$selfId: $text")
+  }
+
   fun formatMessage(selfId: Long, event: OneBotEvent, groupName: String?): String {
     val senderName = event.sender?.get("card")?.asString?.takeIf(String::isNotBlank)
       ?: event.sender?.get("nickname")?.asString

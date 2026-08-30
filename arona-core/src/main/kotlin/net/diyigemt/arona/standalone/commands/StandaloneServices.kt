@@ -29,6 +29,8 @@ object StandaloneServices {
   val CALL_ME = StandaloneServiceInfo(18, "自定义昵称", groupOnly = true)
   val GAME_NAME = StandaloneServiceInfo(21, "游戏名记录")
   val GAME_NAME_SEARCH = StandaloneServiceInfo(22, "游戏名反查")
+  val TASK = StandaloneServiceInfo(24, "定时任务", adminOnly = true)
+  val BACKUP = StandaloneServiceInfo(25, "备份恢复", adminOnly = true)
 
   val all: List<StandaloneServiceInfo> = listOf(
     CONFIG,
@@ -46,6 +48,8 @@ object StandaloneServices {
     CALL_ME,
     GAME_NAME,
     GAME_NAME_SEARCH,
+    TASK,
+    BACKUP,
   )
 
   fun registerAll() {

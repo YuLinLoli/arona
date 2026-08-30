@@ -6,7 +6,11 @@ interface MessageSender {
 
 data class MessageReceipt(val messageId: Long? = null)
 
-data class OutgoingMessage(val segments: List<MessageSegment>) {
+data class OutgoingMessage(
+  val segments: List<MessageSegment>,
+  /** 发送成功后延迟自动撤回的毫秒数(独立模式通过 OneBot delete_msg 实现), null 表示不撤回 */
+  val revokeAfterMillis: Long? = null,
+) {
   companion object {
     fun text(value: String) = OutgoingMessage(listOf(MessageSegment.Text(value)))
     fun at(userId: Long) = OutgoingMessage(listOf(MessageSegment.At(userId)))
@@ -15,7 +19,10 @@ data class OutgoingMessage(val segments: List<MessageSegment>) {
     fun forward(title: String, messages: List<ForwardMessage>) = OutgoingMessage(listOf(MessageSegment.Forward(title, messages)))
   }
 
-  operator fun plus(other: OutgoingMessage) = OutgoingMessage(segments + other.segments)
+  operator fun plus(other: OutgoingMessage) = OutgoingMessage(
+    segments + other.segments,
+    revokeAfterMillis = revokeAfterMillis ?: other.revokeAfterMillis,
+  )
 }
 
 sealed interface MessageSegment {

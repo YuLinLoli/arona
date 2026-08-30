@@ -63,8 +63,9 @@ class OneBotWsReverseConnection(
       result.completeExceptionally(IllegalStateException("Reverse WebSocket has no clients"))
       return result
     }
-    pending[action.echo] = result
+    trackPending(action.echo, result)
     val payload = OneBotProtocol.serialize(action)
+    // TODO: 多个客户端同时连接时动作会广播给所有客户端, 可能重复执行; 建议固定单一客户端发送
     opened.forEach { it.send(payload) }
     return result
   }

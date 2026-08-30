@@ -10,6 +10,7 @@ import net.diyigemt.arona.interfaces.BaseFunctionProvider
 import net.mamoe.mirai.console.util.safeCast
 import org.quartz.*
 import org.quartz.impl.StdSchedulerFactory
+import org.quartz.impl.matchers.GroupMatcher
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Calendar
@@ -147,6 +148,43 @@ object QuartzProvider: BaseFunctionProvider(Dispatchers.IO) {
 
   fun resumeTask(jobKey: JobKey) = quartzScheduler.resumeJob(jobKey)
 
+  fun pauseAll() = quartzScheduler.pauseAll()
+
+  fun resumeAll() = quartzScheduler.resumeAll()
+
+  /** 列出全部 Quartz 任务及其触发器状态, 供 /任务 指令可视化排查 */
+  fun listTasks(): List<QuartzTaskInfo> {
+    val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    return quartzScheduler.jobGroupNames.flatMap { group ->
+      quartzScheduler.getJobKeys(GroupMatcher.groupEquals(group)).mapNotNull { jobKey ->
+        val trigger = quartzScheduler.getTriggersOfJob(jobKey).firstOrNull()
+        QuartzTaskInfo(
+          jobKey = jobKey.name,
+          group = group,
+          triggerKey = trigger?.key?.name,
+          state = trigger?.let { quartzScheduler.getTriggerState(it.key).name },
+          nextFireTime = trigger?.nextFireTime?.let(format::format),
+          previousFireTime = trigger?.previousFireTime?.let(format::format),
+        )
+      }
+    }
+  }
+
+  /** 触发任务: 支持完整 job 名或去掉 Job 后缀的基础名; 未找到时返回错误信息 */
+  fun triggerTaskByName(name: String): String? {
+    val candidates = listOf(name, name.removeSuffix("Job") + "Job")
+    for (candidate in candidates) {
+      for (group in quartzScheduler.jobGroupNames) {
+        val key = JobKey.jobKey(candidate, group)
+        if (quartzScheduler.checkExists(key)) {
+          quartzScheduler.triggerJob(key)
+          return null
+        }
+      }
+    }
+    return "未找到任务: $name"
+  }
+
   override suspend fun main() {}
 
   override fun disable() {
@@ -154,3 +192,13 @@ object QuartzProvider: BaseFunctionProvider(Dispatchers.IO) {
   }
 
 }
+
+/** Quartz 任务快照, 用于 /任务 指令展示 */
+data class QuartzTaskInfo(
+  val jobKey: String,
+  val group: String,
+  val triggerKey: String?,
+  val state: String?,
+  val nextFireTime: String?,
+  val previousFireTime: String?,
+)

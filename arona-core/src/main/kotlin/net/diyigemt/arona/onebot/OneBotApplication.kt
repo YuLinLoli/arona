@@ -55,6 +55,7 @@ class OneBotApplication(
     (eventHandler as? AutoCloseable)?.close()
   }
 
+  // TODO: 多连接模式下所有主动消息都走 firstConnection(), 未按事件来源连接回复; HTTP 正向没有 connection, 主动消息会被静默丢弃
   fun firstConnection(): OneBotConnection? = connections.firstOrNull()
 
   fun send(action: OneBotAction) = firstConnection()?.send(action)

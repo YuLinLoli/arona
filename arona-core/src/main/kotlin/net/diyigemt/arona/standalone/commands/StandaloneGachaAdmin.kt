@@ -89,6 +89,7 @@ object StandaloneGachaAdmin {
     return OutgoingMessage.text("历史记录重置成功")
   }
 
+  // TODO: 独立模式抽卡配置(出货率/池子/限制/撤回时间)只保存在内存, 重启即丢失, 需持久化到文件
   private fun setRate(rate: Float?, label: String, usage: String, setter: (Float) -> Unit): OutgoingMessage {
     if (rate == null) return OutgoingMessage.text("用法: /抽卡 $usage <rate>")
     setter(rate)

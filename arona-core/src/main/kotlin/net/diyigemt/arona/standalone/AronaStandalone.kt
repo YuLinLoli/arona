@@ -86,11 +86,22 @@ object AronaStandalone {
     )
     application.start()
     RuntimeServices.messageSender = OneBotMessageSender({ application.firstConnection() }, config.selfId)
-    Runtime.getRuntime().addShutdownHook(Thread { application.stop() })
+    Runtime.getRuntime().addShutdownHook(Thread { shutdown(application) })
     println("Arona standalone started")
     println("Config: ${configFile.toAbsolutePath()}")
     println("Arona 业务配置: ${aronaConfigFile.toAbsolutePath()}")
+    println("日志文件: ${StandaloneLogFile.logDirectory()?.toAbsolutePath() ?: "未启用"}")
     CountDownLatch(1).await()
+  }
+
+  /** 优雅关闭: 停止 OneBot 连接、Quartz 定时任务、数据库、arona.yml 热重载监听与日志 */
+  private fun shutdown(application: OneBotApplication) {
+    RuntimeLog.info("正在关闭 Arona...")
+    runCatching { application.stop() }
+    runCatching { QuartzProvider.disable() }
+    runCatching { DataBaseProvider.close() }
+    runCatching { StandaloneAronaConfig.close() }
+    StandaloneLogFile.close()
   }
 
   /** 启动后台同步任务: 活动日历写库、塔罗牌图片预下载 (学生/活动数据由上面的数据同步服务负责) */
@@ -114,16 +125,18 @@ object AronaStandalone {
     runCatching {
       System.setOut(PrintStream(FileOutputStream(FileDescriptor.out), true, "UTF-8"))
     }
+    StandaloneLogFile.init()
     installColoredConsole()
     ConsoleEmoji.init()
   }
 
   /** 给黑窗口输出染色： [Arona]xxx / [OneBot xxx] 统一亮绿，WARNING:xxx / SLF4J:xxx 统一亮黄 */
+  // TODO: ANSI 颜色无条件输出, 在经典 conhost 或输出重定向到文件时会留下裸转义码, 建议先检测终端能力
   private fun installColoredConsole() {
     val rawOut = System.out
     val rawErr = System.err
-    System.setOut(ColoredPrintStream(rawOut))
-    System.setErr(ColoredPrintStream(rawErr))
+    System.setOut(ColoredPrintStream(TeePrintStream(rawOut)))
+    System.setErr(ColoredPrintStream(TeePrintStream(rawErr)))
   }
 
   private class ColoredPrintStream(private val target: PrintStream) : PrintStream(target) {
