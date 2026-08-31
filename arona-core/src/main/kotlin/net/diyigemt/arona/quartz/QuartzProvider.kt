@@ -134,6 +134,10 @@ object QuartzProvider: BaseFunctionProvider(Dispatchers.IO) {
 
   fun deleteTask(jobKey: String, group: String): Boolean = deleteTask(JobKey.jobKey("${jobKey}Job", group))
 
+  /** 判断任务是否存在(自动补 Job 后缀), 用于预警定时任务去重 */
+  fun checkTaskExists(jobKey: String, group: String): Boolean =
+    quartzScheduler.checkExists(JobKey.jobKey("${jobKey}Job", group))
+
   fun interruptTask(jobKey: String, group: String): Boolean = interruptTask(JobKey.jobKey("${jobKey}Job", group))
 
   fun pauseTask(jobKey: String, group: String) = pauseTask(JobKey.jobKey("${jobKey}Job", group))

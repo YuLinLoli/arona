@@ -12,7 +12,6 @@ import net.diyigemt.arona.quartz.QuartzProvider
 import net.diyigemt.arona.service.AronaQuartzService
 import net.diyigemt.arona.util.ActivityUtil
 import net.diyigemt.arona.util.MessageUtil
-import net.diyigemt.arona.util.TimeUtil.calculateActivityNotifyTime
 import net.diyigemt.arona.util.TimeUtil.calcDiffDayAndHour
 import net.mamoe.mirai.contact.Contact.Companion.uploadImage
 import net.mamoe.mirai.message.code.MiraiCode
@@ -29,41 +28,24 @@ object ActivityNotify : AronaQuartzService {
   private const val ActivityNotifyDataInitKey = "init"
   private const val ActivityNotifyOneHour = "ActivityNotifyOneHour"
   private const val ActivityKey = "activity"
-  private const val NotifyStringKey = "notifyString"
-  private const val MaintenanceKey = "maintenance"
   private const val NormalActivityNotifyBeforeHours = 1
   private const val DropActivityNotifyBeforeHours = 5
+  /** 预警时间正负10分钟内视为立即发送窗口 */
+  private const val AlertImmediateWindowMillis = 10 * 60 * 1000L
   override var jobKey: JobKey? = null
 
   class ActivityNotifyJob : Job {
     override fun execute(context: JobExecutionContext?) {
-      val jp = ActivityUtil.fetchJPActivity()
-      val en = ActivityUtil.fetchENActivity()
-      val cn = ActivityUtil.fetchCNActivity()
-      val alertListJP = mutableListOf<Activity>()
-      val alertListEN = mutableListOf<Activity>()
-      val alertListCN = mutableListOf<Activity>()
-      val filterJP = jp.first
-        .filter {
-          filterActive(it, alertListJP)
-        } to jp.second
-        .filter {
-          filterPending(it)
-        }.also { insertAlert(alertListJP, ServerLocale.JP) }
-      val filterEN = en.first
-        .filter {
-          filterActive(it, alertListEN)
-        } to en.second
-        .filter {
-          filterPending(it)
-        }.also { insertAlert(alertListEN, ServerLocale.GLOBAL) }
-      val filterCN = cn.first
-        .filter {
-          filterActive(it, alertListCN)
-        } to cn.second
-        .filter {
-          filterPending(it)
-        }.also { insertAlert(alertListCN, ServerLocale.CN) }
+      val jp = runCatching { ActivityUtil.fetchJPActivity() }.getOrNull()
+      val en = runCatching { ActivityUtil.fetchENActivity() }.getOrNull()
+      val cn = runCatching { ActivityUtil.fetchCNActivity() }.getOrNull()
+      // 5小时/1小时预警: 每次运行(启动初始化/每日定时)都查询; 正负10分钟内立即发送, 过时抛弃, 未来添加定时任务(去重)
+      jp?.let { scheduleAlertsForServer(it.first, ServerLocale.JP) }
+      en?.let { scheduleAlertsForServer(it.first, ServerLocale.GLOBAL) }
+      cn?.let { scheduleAlertsForServer(it.first, ServerLocale.CN) }
+      val filterJP = (jp?.first ?: emptyList()).filter { filterActive(it) } to (jp?.second ?: emptyList()).filter { filterPending(it) }
+      val filterEN = (en?.first ?: emptyList()).filter { filterActive(it) } to (en?.second ?: emptyList()).filter { filterPending(it) }
+      val filterCN = (cn?.first ?: emptyList()).filter { filterActive(it) } to (cn?.second ?: emptyList()).filter { filterPending(it) }
       // 初始化不显示信息
       val init = context?.mergedJobDataMap?.getBoolean(ActivityNotifyDataInitKey) ?: false
       if (init) return
@@ -94,51 +76,6 @@ object ActivityNotify : AronaQuartzService {
       }
     }
 
-    /**
-     * 创建单次任务用于活动提醒
-     *
-     * 该函数用于创建一个定时任务，在指定时间触发活动提醒。
-     * 任务将在指定的小时执行ActivityNotifyOneHourJob来发送提醒消息
-     *
-     * @param activity 需要提醒的活动列表
-     * @param expected 执行任务的准确时间
-     * @param locale 服务器区域，用于确定发送目标群组
-     * @param extraKey 额外的键值，用于区分不同的任务
-     */
-    private fun doInsert(activity: List<Activity>, expected: Date, locale: ServerLocale, extraKey: String = "") {
-      // 设置任务执行时间
-      QuartzProvider.createSingleTask(
-        ActivityNotifyOneHourJob::class.java,
-        expected,
-        "${ActivityNotifyOneHour}-${locale.commandName}-${expected.time}-${extraKey}",
-        ActivityNotifyOneHour,
-        mapOf(
-          ActivityKey to activity, NotifyStringKey to when (locale) {
-            ServerLocale.JP -> AronaNotifyConfig.notifyStringJP
-            ServerLocale.GLOBAL -> AronaNotifyConfig.notifyStringEN
-            ServerLocale.CN -> AronaNotifyConfig.notifyStringCN
-          }
-        )
-      )
-    }
-
-    private fun insertAlert(activity: MutableList<Activity>, locale: ServerLocale) {
-      if (activity.isEmpty()) return
-      val dropActivities = activity.filter { isMidnightEndActivity(it) }
-      activity.removeAll(dropActivities)
-      // 非双倍掉落提醒
-      insertAlertBeforeEnd(activity, locale, NormalActivityNotifyBeforeHours)
-      // 双倍掉落提醒
-      insertAlertBeforeEnd(dropActivities, locale, DropActivityNotifyBeforeHours)
-    }
-
-    private fun insertAlertBeforeEnd(activity: List<Activity>, locale: ServerLocale, beforeHours: Int) {
-      activity.groupBy { calculateActivityNotifyTime(it.time, beforeHours) }
-        .forEach { (notifyAt, activities) ->
-          doInsert(activities, notifyAt, locale, beforeHours.toString())
-        }
-    }
-
     private fun filterPending(activity: Activity): Boolean {
       val extra = calcDiffDayAndHour(activity.time)
       val d = extra.first
@@ -146,13 +83,10 @@ object ActivityNotify : AronaQuartzService {
       return doFilter(d, h)
     }
 
-    private fun filterActive(activity: Activity, list: MutableList<Activity>): Boolean {
+    private fun filterActive(activity: Activity): Boolean {
       val extra = calcDiffDayAndHour(activity.time)
       val d = extra.first
       val h = extra.second
-      if (d == 0) {
-        list.add(activity)
-      }
       return doFilter(d, h)
     }
 
@@ -168,10 +102,9 @@ object ActivityNotify : AronaQuartzService {
   @Suppress("UNCHECKED_CAST")
   class ActivityNotifyOneHourJob : InterruptableJob {
     /**
-     * 活动通知任务
+     * 活动结束预警任务
      *
-     * 该类实现了InterruptableJob接口，用于在活动开始前一小时向指定群组发送提醒消息。
-     * 主要功能包括：处理维护通知、处理活动结束提醒等。
+     * 在活动结束前1小时(双倍掉落提前5小时)向指定群组发送提醒消息。
      *
      * @property context 任务执行上下文，包含活动数据和通知配置信息
      */
@@ -179,53 +112,96 @@ object ActivityNotify : AronaQuartzService {
       val ac = context?.mergedJobDataMap?.get(ActivityKey) ?: return
       ac as List<Activity>
       if (ac.isEmpty()) return
-      val activity = ac.toMutableList()
-      // 提取维护活动信息
-      val maintenance: Activity? = activity
-        .filter { isMaintenanceActivity(it) }
-        .let {
-          if (it.isNotEmpty()) {
-            activity.removeAll(it)
-            return@let it[0]
-          } else {
-            return@let null
-          }
-        }
-      val server = ac[0].serverLocale
-      val targetGroup = when (server) {
-        ServerLocale.JP -> AronaNotifyConfig.enableJPGroup
-        ServerLocale.GLOBAL -> AronaNotifyConfig.enableENGroup
-        ServerLocale.CN -> AronaNotifyConfig.enableCNGroup
-      }
-      val serverName = server.serverName
-      if (maintenance != null) {
-        Arona.sendFilterGroupMessage("距离${serverName}维护还有1小时", targetGroup)
-      }
-      val notifyPrefix = context.mergedJobDataMap?.get(NotifyStringKey) ?: "${serverName}防侠提醒"
-      // 只有维护信息时
-      if (activity.isEmpty()) return
-      val activityString = activity
-        .map { at -> "${at.content}\n" }
-        .reduceOrNull { prv, cur -> prv + cur }
-      val serverString = if (context.mergedJobDataMap?.get(NotifyStringKey) != null) {
-        MiraiCode.deserializeMiraiCode(notifyPrefix as String)
-      } else notifyPrefix
-      // 计算活动结束时间
-      val endTime = if (isMidnightEndActivity(activity[0])) {
-        DropActivityNotifyBeforeHours
-      } else {
-        NormalActivityNotifyBeforeHours
-      }
-      Arona.sendFilterGroupMessage(
-        "${serverString}\n" +
-          "$activityString" +
-          "将会在${endTime}小时后结束", targetGroup
-      )
+      sendAlert(ac, ac[0].serverLocale)
     }
 
     override fun interrupt() {
       Arona.warning("interrupt")
     }
+  }
+
+  /** 为某个服务器的进行中活动安排结束预警(非双倍掉落提前1小时, 双倍掉落提前5小时) */
+  private fun scheduleAlertsForServer(active: List<Activity>, locale: ServerLocale) {
+    val dropActivities = active.filter { isMidnightEndActivity(it) }
+    val normalActivities = active.filterNot { isMidnightEndActivity(it) }
+    scheduleAlertGroup(normalActivities, locale, NormalActivityNotifyBeforeHours)
+    scheduleAlertGroup(dropActivities, locale, DropActivityNotifyBeforeHours)
+  }
+
+  /** 按提醒时间分组处理: 正负10分钟内立即发送, 过时抛弃, 未来添加定时任务(去重) */
+  private fun scheduleAlertGroup(activities: List<Activity>, locale: ServerLocale, beforeHours: Int) {
+    if (activities.isEmpty()) return
+    val now = System.currentTimeMillis()
+    val window = AlertImmediateWindowMillis
+    activities
+      .filter { it.endTime > 0 }
+      .groupBy { it.endTime - beforeHours * 60L * 60L * 1000L }
+      .forEach { (notifyAt, group) ->
+        when {
+          notifyAt < now - window -> Unit // 已过期, 抛弃
+          notifyAt <= now + window -> sendAlert(group, locale) // 正负10分钟内, 立即发送
+          else -> doInsert(group, Date(notifyAt), locale, beforeHours) // 未来, 添加定时任务
+        }
+      }
+  }
+
+  /** 创建单次定时任务用于活动结束预警; 已存在同 key 任务则跳过, 避免重复 */
+  private fun doInsert(activity: List<Activity>, expected: Date, locale: ServerLocale, beforeHours: Int) {
+    val key = "${ActivityNotifyOneHour}-${locale.commandName}-${expected.time}-$beforeHours"
+    if (QuartzProvider.checkTaskExists(key, ActivityNotifyOneHour)) return
+    QuartzProvider.createSingleTask(
+      ActivityNotifyOneHourJob::class.java,
+      expected,
+      key,
+      ActivityNotifyOneHour,
+      mapOf(ActivityKey to activity)
+    )
+  }
+
+  /** 发送活动结束预警(定时任务与立即发送共用) */
+  private fun sendAlert(activity: List<Activity>, locale: ServerLocale) {
+    val ac = activity.toMutableList()
+    // 提取维护活动信息
+    val maintenance: Activity? = ac
+      .filter { isMaintenanceActivity(it) }
+      .let {
+        if (it.isNotEmpty()) {
+          ac.removeAll(it)
+          return@let it[0]
+        } else {
+          return@let null
+        }
+      }
+    val targetGroup = when (locale) {
+      ServerLocale.JP -> AronaNotifyConfig.enableJPGroup
+      ServerLocale.GLOBAL -> AronaNotifyConfig.enableENGroup
+      ServerLocale.CN -> AronaNotifyConfig.enableCNGroup
+    }
+    val serverName = locale.serverName
+    if (maintenance != null) {
+      Arona.sendFilterGroupMessage("距离${serverName}维护还有1小时", targetGroup)
+    }
+    if (ac.isEmpty()) return
+    val notifyPrefix = when (locale) {
+      ServerLocale.JP -> AronaNotifyConfig.notifyStringJP
+      ServerLocale.GLOBAL -> AronaNotifyConfig.notifyStringEN
+      ServerLocale.CN -> AronaNotifyConfig.notifyStringCN
+    }
+    val activityString = ac
+      .map { at -> "${at.content}\n" }
+      .reduceOrNull { prv, cur -> prv + cur }
+    val serverString = MiraiCode.deserializeMiraiCode(notifyPrefix)
+    // 计算活动结束时间
+    val endTime = if (isMidnightEndActivity(ac[0])) {
+      DropActivityNotifyBeforeHours
+    } else {
+      NormalActivityNotifyBeforeHours
+    }
+    Arona.sendFilterGroupMessage(
+      "${serverString}\n" +
+        "$activityString" +
+        "将会在${endTime}小时后结束", targetGroup
+    )
   }
 
   // 判断是不是双倍掉落(一般在3点结束,其实总力战也是,所以放一起了)
