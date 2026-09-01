@@ -20,6 +20,7 @@ import net.diyigemt.arona.config.*
 import net.diyigemt.arona.db.DataBaseProvider
 import net.diyigemt.arona.extension.CommandInterceptorManager
 import net.diyigemt.arona.extension.CommandResolver
+import net.diyigemt.arona.gacha.KivoStudentSource
 import net.diyigemt.arona.handler.GroupRepeaterHandler
 import net.diyigemt.arona.handler.HentaiEventHandler
 import net.diyigemt.arona.handler.NudgeEventHandler
@@ -89,7 +90,8 @@ object Arona : KotlinPlugin(
       AronaServiceManager,
       CommandInterceptorManager,
       RemoteServiceManager,
-      ImageUtil
+      ImageUtil,
+      KivoStudentSource
     )
 
   @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)

@@ -24,6 +24,7 @@ object StandaloneServices {
   val GACHA_MULTI = StandaloneServiceInfo(5, "抽卡十连", groupOnly = true)
   val GACHA_DOG = StandaloneServiceInfo(6, "抽卡狗叫查询", groupOnly = true)
   val GACHA_HISTORY = StandaloneServiceInfo(7, "抽卡历史查询", groupOnly = true)
+  val GACHA_SERVER = StandaloneServiceInfo(26, "抽卡服务器设置")
   val TAROT = StandaloneServiceInfo(16, "塔罗牌")
   val EMERGENCY_STOP = StandaloneServiceInfo(17, "紧急停止")
   val CALL_ME = StandaloneServiceInfo(18, "自定义昵称", groupOnly = true)
@@ -43,6 +44,7 @@ object StandaloneServices {
     GACHA_MULTI,
     GACHA_DOG,
     GACHA_HISTORY,
+    GACHA_SERVER,
     TAROT,
     EMERGENCY_STOP,
     CALL_ME,

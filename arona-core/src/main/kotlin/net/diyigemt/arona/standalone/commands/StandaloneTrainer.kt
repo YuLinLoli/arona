@@ -99,7 +99,7 @@ object StandaloneTrainer {
   private fun selectionKey(context: CommandContext): String =
     if (context.groupId != null) "g${context.groupId}:u${context.userId}" else "p${context.userId}"
 
-  /** 三服当期卡池: 合并转发, 每个角色一个节点, 内容为 角色图 + 【角色图】/角色名/所属 文本 */
+  /** 三服当期卡池: 合并转发, 每个角色一个节点, 内容为 卡池图(image_list) + 角色名/所属/时间 文本 */
   private fun gachaPoolForward(server: GachaServer): OutgoingMessage {
     val characters = runCatching { GameKeeGachaPoolSource.fetchPool(server) }
       .getOrElse { return OutgoingMessage.text("获取${server.displayName}当期卡池失败: ${it.message}") }
@@ -107,14 +107,14 @@ object StandaloneTrainer {
     val imageDir = GeneralUtils.localImageFile("/gacha-pool/${server.displayName}")
     val uin = RuntimeConfig.botId
     val nodes = characters.map { character ->
-      // 上传头图前先按角色 id 查缓存, 未命中才下载
+      // 上传头图前先按角色 id 查缓存, 未命中才下载卡池图(image_list)
       val imageFile = GameKeeGachaPoolSource.findCachedImage(character.id, imageDir)
         ?: GameKeeGachaPoolSource.downloadCharacterImage(character, imageDir)
       val text = buildString {
-        append("${character.imageList}\n")
         append("角色名：${character.name}\n")
         append("所属：${character.nameAlias}\n")
-        append("开始时间：${formatPoolTime(character.startAt)}—结束时间：${formatPoolTime(character.endAt)}")
+        append("开始时间：${formatPoolTime(character.startAt)}\n")
+        append("结束时间：${formatPoolTime(character.endAt)}")
       }
       val content = mutableListOf<MessageSegment>()
       imageFile?.let { content += MessageSegment.Image(file = it.absolutePath) }

@@ -1,6 +1,7 @@
 package net.diyigemt.arona.standalone.commands
 
-import net.diyigemt.arona.command.cache.GachaCache
+import net.diyigemt.arona.gacha.GachaV2ImageRenderer
+import net.diyigemt.arona.gacha.GachaV2Service
 import net.diyigemt.arona.runtime.CommandContext
 import net.diyigemt.arona.runtime.OutgoingMessage
 import net.diyigemt.arona.runtime.RuntimeGachaConfig
@@ -14,65 +15,60 @@ object StandaloneGacha {
     return if (millis > 0) OutgoingMessage(message.segments, revokeAfterMillis = millis) else message
   }
 
-  private fun poolEmptyMessage(): String? = when {
-    GachaCache.star1List.isEmpty() && GachaCache.star2List.isEmpty() && GachaCache.star3List.isEmpty() ->
-      "抽卡池为空, 请先使用 /抽卡 update <id> 从远端更新卡池"
-    else -> null
-  }
-
   private fun teacherName(context: CommandContext, userId: Long, groupId: Long): String =
     GeneralUtils.queryTeacherNameFromDB(groupId, userId, context.senderName ?: userId.toString())
 
-  suspend fun singleDraw(context: CommandContext): OutgoingMessage {
+  suspend fun singleDraw(context: CommandContext, arguments: List<String>): OutgoingMessage {
     val groupId = context.groupId ?: return OutgoingMessage.text("该功能仅限群聊使用")
-    poolEmptyMessage()?.let { return OutgoingMessage.text(it) }
     val userId = context.userId
     val teacherName = teacherName(context, userId, groupId)
-    val checkTime = GachaUtil.checkTime(userId, groupId)
-    if (checkTime <= 0) {
+    val server = GachaV2Service.resolveDrawServer(userId, arguments.firstOrNull())
+      ?: return OutgoingMessage.text("未知服务器, 可用: 日服/国服/国际服")
+    val report = runCatching { GachaV2Service.performDraw(userId, groupId, 1, server) }
+      .getOrElse { return OutgoingMessage.text(it.message ?: "抽卡失败, 请稍后再试") }
+    if (report == null) {
       return OutgoingMessage.at(userId) + OutgoingMessage.text("${teacherName},石头不够了哦,明天再来抽吧")
     }
-    val result = GachaUtil.pickup()
-    val stars = result.star
-    val history = GachaUtil.getHistory(userId, groupId)
-    val star3 = if (stars == 3) 1 else 0
-    val hit = GachaUtil.hitPickup(result)
-    GachaUtil.updateHistory(userId, groupId, addPoints = 1, addCount3 = star3, dog = hit)
-    val s = "${GachaUtil.resultData2String(result)}\n${history.points + 1} points"
-    val dog = if (hit) "恭喜${teacherName},出货了呢" else ""
-    return if (dog.isEmpty()) revokeIfNeeded(OutgoingMessage.text(s))
-    else revokeIfNeeded(OutgoingMessage.at(userId) + OutgoingMessage.text("$dog\n$s"))
+    val imageFile = runCatching {
+      GachaV2ImageRenderer.render(report.results, report.pityCount, GachaV2ImageRenderer.newResultFile())
+    }.getOrElse {
+      return OutgoingMessage.text(it.message ?: "抽卡图片生成失败, 请稍后再试")
+    }
+    return revokeIfNeeded(OutgoingMessage.image(imageFile.absolutePath))
   }
 
-  suspend fun multiDraw(context: CommandContext): OutgoingMessage {
+  suspend fun multiDraw(context: CommandContext, arguments: List<String>): OutgoingMessage {
     val groupId = context.groupId ?: return OutgoingMessage.text("该功能仅限群聊使用")
-    poolEmptyMessage()?.let { return OutgoingMessage.text(it) }
     val userId = context.userId
     val teacherName = teacherName(context, userId, groupId)
-    val checkTime = GachaUtil.checkTime(userId, groupId)
-    if (checkTime <= 0) {
+    val server = GachaV2Service.resolveDrawServer(userId, arguments.firstOrNull())
+      ?: return OutgoingMessage.text("未知服务器, 可用: 日服/国服/国际服")
+    val report = runCatching { GachaV2Service.performDraw(userId, groupId, 10, server) }
+      .getOrElse { return OutgoingMessage.text(it.message ?: "抽卡失败, 请稍后再试") }
+    if (report == null) {
       return OutgoingMessage.at(userId) + OutgoingMessage.text("${teacherName},石头不够了哦,明天再来抽吧")
     }
-    val result = Array(checkTime) { GachaUtil.pickup() }
-    val starMap = result.map { it.star }
-    val stars = starMap.reduce { prv, cur -> prv + cur }
-    var stars1 = starMap.count { it == 1 }
-    var stars2 = starMap.count { it == 2 }
-    val stars3 = starMap.count { it == 3 }
-    if (stars <= 10 && checkTime == 10) {
-      result[9] = GachaUtil.pickup2()
-      stars1--
-      stars2++
+    val imageFile = runCatching {
+      GachaV2ImageRenderer.render(report.results, report.pityCount, GachaV2ImageRenderer.newResultFile())
+    }.getOrElse {
+      return OutgoingMessage.text(it.message ?: "抽卡图片生成失败, 请稍后再试")
     }
-    val s = result.map { GachaUtil.resultData2String(it) }
-      .reduceIndexed { index, prv, cur -> if (index == 4) "$prv $cur\n" else "$prv $cur" }
-    val hit = result.any { GachaUtil.hitPickup(it) }
-    val history = GachaUtil.getHistory(userId, groupId)
-    GachaUtil.updateHistory(userId, groupId, addPoints = checkTime, addCount3 = stars3, dog = hit)
-    val dog = if (hit) "恭喜${teacherName},出货了呢" else ""
-    val sss = "3星:$stars3 2星:$stars2 1星:$stars1 ${history.points + checkTime} points\n${s}"
-    return if (dog.isEmpty()) revokeIfNeeded(OutgoingMessage.text(sss))
-    else revokeIfNeeded(OutgoingMessage.at(userId) + OutgoingMessage.text("$dog\n$sss"))
+    return revokeIfNeeded(OutgoingMessage.image(imageFile.absolutePath))
+  }
+
+  /** /抽卡服务器 <日服|国服|国际服>: 设置该用户的默认抽卡服务器 */
+  suspend fun setServer(context: CommandContext, arguments: List<String>): OutgoingMessage {
+    val raw = arguments.firstOrNull()
+    if (raw.isNullOrBlank()) {
+      return OutgoingMessage.text(
+        "当前默认抽卡服务器: ${GachaV2Service.getUserServer(context.userId).serverName}\n" +
+          "用法: /抽卡服务器 日服|国服|国际服"
+      )
+    }
+    val server = GachaV2Service.resolveServer(raw)
+      ?: return OutgoingMessage.text("未知服务器: $raw, 可用: 日服/国服/国际服")
+    GachaV2Service.setUserServer(context.userId, server)
+    return OutgoingMessage.text("抽卡服务器已设置为 ${server.serverName}")
   }
 
   suspend fun dogRanking(context: CommandContext): OutgoingMessage {

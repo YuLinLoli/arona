@@ -101,6 +101,9 @@ data class CommonDAO(
     //GLB
     res = generateServerData(ServerLocale.GLOBAL, res)
 
+    // 国服卡池/活动/总力战同样需要从数据库重建, 否则国服当期 pickup 恒为空
+    res = generateServerData(ServerLocale.CN, res)
+
     return res
   }
 

@@ -30,6 +30,8 @@ object BaseDataBase {
         GachaPoolCharacterTable,
         GachaHistoryTable,
         GachaLimitTable,
+        GachaUserSettingTable,
+        GachaPityTable,
         TarotTable,
         TarotRecordTable,
         TeacherNameTable,

@@ -15,6 +15,12 @@ object Students : Table("Students") {
   val studentID: Column<Int> = integer("studentID")
   val name: Column<String> = varchar("name", 15)
   val birthday: Column<String> = varchar("birthday", 5)
+  // 抽卡等新功能所需字段: 完整落库, toModel 回读时不再丢失(旧库通过 migrateLegacySchema 补列)
+  val starGrade: Column<Int> = integer("starGrade").default(0)
+  val devName: Column<String> = varchar("devName", 50).default("")
+  val pathName: Column<String> = varchar("pathName", 50).default("")
+  val isReleased: Column<String> = varchar("isReleased", 50).default("")
+  val isLimited: Column<Int> = integer("isLimited").default(0)
 
   override val primaryKey: PrimaryKey = PrimaryKey(studentID)
 }

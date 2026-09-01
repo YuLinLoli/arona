@@ -188,7 +188,6 @@ object SchaleDBDataSyncService : AronaQuartzService{
     val (res, isGitHub) = fetched
 
     resString = ""
-    var isUpdate = false
     val md5 = MessageDigest.getInstance("MD5").digest(res.toByteArray()).toByteString().hex()
     val query = runCatching {
       DataBaseProvider.query(DB.DATA.ordinal) { MD5.select(MD5.name eq dataType).first() }
@@ -217,7 +216,6 @@ object SchaleDBDataSyncService : AronaQuartzService{
             kotlin.runCatching { dao.sendToDataBase() }.onSuccess {
               updateMD5(dataType, RemoteType.GITHUB.name, md5)
             }
-            isUpdate = true
           } else resString += " already up to date."
         }
         else -> apply {
@@ -226,7 +224,6 @@ object SchaleDBDataSyncService : AronaQuartzService{
             kotlin.runCatching { dao.sendToDataBase() }.onSuccess {
               updateMD5(dataType, RemoteType.MIRROR.name, md5)
             }
-            isUpdate = true
           } else resString += " already up to date."
         }
       }
@@ -234,13 +231,11 @@ object SchaleDBDataSyncService : AronaQuartzService{
       dao.sendToDataBase()
       if (isGitHub) updateMD5(dataType, RemoteType.GITHUB.name, md5)
       else updateMD5(dataType, RemoteType.MIRROR.name, md5)
-      isUpdate = true
     }
     RuntimeLog.info(resString)
 
-    if (isUpdate) return dao
-
-    return dao.toModel(dao)
+    // 无论数据是否变化都返回本次解析的完整数据, 避免 toModel 从旧库回读时丢失抽卡所需字段(StarGrade/DevName/IsReleased 等)
+    return dao
   }
 
   private fun updateMD5(name : String, remote : String, md5 : String){
@@ -299,15 +294,15 @@ object SchaleDBDataSyncService : AronaQuartzService{
 
 // 中文说明：定义 SchaleDBConfig 类型, 对应新版 SchaleDB 仓库 data/config.json 的根结构。
 data class SchaleDBConfig(
-  val Regions: List<ConfigRegion> = emptyList()
+  var Regions: List<ConfigRegion> = emptyList()
 )
 
 // 中文说明：定义 ConfigRegion 类型, 对应 config.json 中单个服务器的当前活动数据。
 data class ConfigRegion(
-  val Name: String = "",
-  val CurrentGacha: List<ConfigGacha> = emptyList(),
-  val CurrentEvents: List<ConfigEvent> = emptyList(),
-  val CurrentRaid: List<ConfigRaid> = emptyList()
+  var Name: String = "",
+  var CurrentGacha: List<ConfigGacha> = emptyList(),
+  var CurrentEvents: List<ConfigEvent> = emptyList(),
+  var CurrentRaid: List<ConfigRaid> = emptyList()
 ) {
   fun toRegions(): Regions = Regions(
     abbreviation = when (Name.lowercase()) {
@@ -324,22 +319,22 @@ data class ConfigRegion(
 
 // 中文说明：定义 ConfigGacha 类型, 对应 config.json 中的卡池条目。
 data class ConfigGacha(
-  val characters: List<Int> = emptyList(),
-  val start: Long = 0,
-  val end: Long = 0
+  var characters: List<Int> = emptyList(),
+  var start: Long = 0,
+  var end: Long = 0
 )
 
 // 中文说明：定义 ConfigEvent 类型, 对应 config.json 中的活动条目。
 data class ConfigEvent(
-  val event: Int = 0,
-  val start: Long = 0,
-  val end: Long = 0
+  var event: Int = 0,
+  var start: Long = 0,
+  var end: Long = 0
 )
 
 // 中文说明：定义 ConfigRaid 类型, 对应 config.json 中的总力战条目。
 data class ConfigRaid(
-  val raid: Int = 0,
-  val terrain: String = "",
-  val start: Long = 0,
-  val end: Long = 0
+  var raid: Int = 0,
+  var terrain: String = "",
+  var start: Long = 0,
+  var end: Long = 0
 )

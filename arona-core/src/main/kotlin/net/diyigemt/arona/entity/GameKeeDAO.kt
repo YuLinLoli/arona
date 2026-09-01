@@ -10,52 +10,52 @@ package net.diyigemt.arona.entity
  */
 // 中文说明：定义 GameKeeDAO 类型，用于封装本模块的数据或处理行为。
 data class GameKeeDAO(
-  val code : Int,
-  val msg : String,
-  val data : List<Data>,
-  val meta : Meta
+  var code : Int,
+  var msg : String,
+  var data : List<Data>,
+  var meta : Meta
 )
 
 // 中文说明：定义 Data 类型，用于封装本模块的数据或处理行为。
 data class Data(
-  val id : Int,
+  var id : Int,
   var title : String,
-  val link_url : String,
-  val picture : String,
-  val description : String,
-  val begin_at : Long,
-  val end_at : Long,
-  val importance : Int,
-  val count_down : Int,
-  val pub_area : String
+  var link_url : String,
+  var picture : String,
+  var description : String,
+  var begin_at : Long,
+  var end_at : Long,
+  var importance : Int,
+  var count_down : Int,
+  var pub_area : String
 )
 
 // 中文说明：定义 Meta 类型，用于封装本模块的数据或处理行为。
 data class Meta(
-  val request_id : String,
-  val trace_id : String
+  var request_id : String,
+  var trace_id : String
 )
 
 data class GameKeeEntryResponse(
-  val code: Int = 0,
-  val msg: String = "",
-  val data: GameKeeEntry? = null
+  var code: Int = 0,
+  var msg: String = "",
+  var data: GameKeeEntry? = null
 )
 
 data class GameKeeEntry(
-  val id: Int = 0,
-  val name: String = "",
-  val pid: Int = 0,
-  val content_id: Int? = null,
-  val child: List<GameKeeEntry>? = null
+  var id: Int = 0,
+  var name: String = "",
+  var pid: Int = 0,
+  var content_id: Int? = null,
+  var child: List<GameKeeEntry>? = null
 )
 data class GameKeeContentResponse(
-  val code: Int = 0,
-  val msg: String = "",
-  val data: GameKeeContent? = null
+  var code: Int = 0,
+  var msg: String = "",
+  var data: GameKeeContent? = null
 )
 
 data class GameKeeContent(
-  val thumb_list: List<String> = emptyList(),
-  val version: String = ""
+  var thumb_list: List<String> = emptyList(),
+  var version: String = ""
 )

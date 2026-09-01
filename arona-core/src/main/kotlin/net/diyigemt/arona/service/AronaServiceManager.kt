@@ -149,6 +149,7 @@ object AronaServiceManager: InitializedFunction() {
     GachaMultiCommand.init()
     GachaDogCommand.init()
     GachaHistoryCommand.init()
+    GachaServerCommand.init()
     GroupRepeaterHandler.init()
     HentaiEventHandler.init()
     NudgeEventHandler.init()

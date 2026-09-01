@@ -9,6 +9,7 @@ import net.diyigemt.arona.onebot.OneBotMessageSender
 import net.diyigemt.arona.onebot.StandaloneBusinessHandler
 import net.diyigemt.arona.quartz.QuartzProvider
 import net.diyigemt.arona.db.DataBaseProvider
+import net.diyigemt.arona.gacha.KivoStudentSource
 import net.diyigemt.arona.runtime.RuntimeConfig
 import net.diyigemt.arona.standalone.StandaloneAronaConfig
 import net.diyigemt.arona.runtime.RuntimeLog
@@ -57,6 +58,9 @@ object AronaStandalone {
       .onFailure { RuntimeLog.warning("本地图片目录初始化失败: ${it.message}") }
     runCatching { ImageUtil.init() }
       .onFailure { RuntimeLog.warning("字体初始化失败: ${it.message}") }
+    // 后台检查三服 kivo 学生数据是否有更新并预热卡池(新学生自动缓存)
+    runCatching { KivoStudentSource.init() }
+      .onFailure { RuntimeLog.warning("kivo 学生数据初始化失败: ${it.message}") }
     val commands = StandaloneCommandDispatcher(config)
     // 启用定时任务: 数据同步(每小时+启动立即执行)与每日活动推送
     // 注意: 服务本身已在 StandaloneServices 中登记, 这里直接启用 Quartz 任务, 不再重复注册

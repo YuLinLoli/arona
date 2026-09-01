@@ -6,47 +6,50 @@ package net.diyigemt.arona.command
 
 import net.diyigemt.arona.Arona
 import net.diyigemt.arona.config.AronaGachaConfig
+import net.diyigemt.arona.gacha.GachaV2ImageRenderer
+import net.diyigemt.arona.gacha.GachaV2Service
 import net.diyigemt.arona.service.AronaGroupService
-import net.diyigemt.arona.util.GachaUtil
-import net.diyigemt.arona.util.GachaUtil.hitPickup
-import net.diyigemt.arona.util.GachaUtil.pickup
-import net.diyigemt.arona.util.GachaUtil.resultData2String
 import net.diyigemt.arona.util.GeneralUtils
 import net.diyigemt.arona.util.GeneralUtils.queryTeacherNameFromDB
 import net.diyigemt.arona.util.MessageUtil
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.MemberCommandSenderOnMessage
 import net.mamoe.mirai.console.command.SimpleCommand
+import net.mamoe.mirai.contact.Contact.Companion.uploadImage
 
 // 中文说明：定义 GachaSingleCommand 对象，集中提供本文件的共享功能。
 object GachaSingleCommand : SimpleCommand(
-  Arona,"gacha_one", "单抽",
-  description = "单抽一次"
+  Arona, "gacha_one", "单抽",
+  description = "单抽一次, 可指定服务器: /单抽 日服|国服|国际服"
 ), AronaGroupService {
 
   @Handler
-  suspend fun MemberCommandSenderOnMessage.gachaOne() {
+  suspend fun MemberCommandSenderOnMessage.gachaOne(server: String?) {
     if (!GeneralUtils.checkService(subject)) return
     val userId = user.id
     val groupId = subject.id
-    val checkTime = GachaUtil.checkTime(userId, groupId)
     val teacherName = queryTeacherNameFromDB(subject, user)
-    if (checkTime <= 0) {
+    val targetServer = GachaV2Service.resolveDrawServer(userId, server)
+    if (targetServer == null) {
+      subject.sendMessage("未知服务器: $server, 可用: 日服/国服/国际服")
+      return
+    }
+    val report = runCatching { GachaV2Service.performDraw(userId, groupId, 1, targetServer) }
+      .getOrElse {
+        subject.sendMessage(it.message ?: "抽卡失败, 请稍后再试")
+        return
+      }
+    if (report == null) {
       subject.sendMessage(MessageUtil.at(user, "${teacherName},石头不够了哦,明天再来抽吧"))
       return
     }
-    val result = pickup()
-    val stars = result.star
-    val history = GachaUtil.getHistory(userId, groupId)
-    var star3 = 0
-    if (stars == 3) {
-      star3 = 1
+    val imageFile = runCatching {
+      GachaV2ImageRenderer.render(report.results, report.pityCount, GachaV2ImageRenderer.newResultFile())
+    }.getOrElse {
+      subject.sendMessage(it.message ?: "抽卡图片生成失败, 请稍后再试")
+      return
     }
-    val hitPickup = hitPickup(result)
-    GachaUtil.updateHistory(userId, groupId, addPoints = 1, addCount3 = star3, dog = hitPickup)
-    val s = "${resultData2String(result)}\n${history.points + 1} points"
-    val dog = if (hitPickup) "恭喜${teacherName},出货了呢" else ""
-    val handler = subject.sendMessage(MessageUtil.atMessageAndCTRL(user, dog, s))
+    val handler = subject.sendMessage(subject.uploadImage(imageFile, "png"))
     if (AronaGachaConfig.revokeTime > 0) {
       MessageUtil.recall(handler, AronaGachaConfig.revokeTime * 1000L)
     }

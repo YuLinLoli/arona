@@ -36,6 +36,11 @@ class StudentDAO : ArrayList<StudentDAOItem>(), BaseDAO{
           it[studentID] = student.Id
           it[name] = student.Name
           it[birthday] = student.BirthDay
+          it[starGrade] = student.StarGrade
+          it[devName] = student.DevName
+          it[pathName] = student.PathName
+          it[isReleased] = student.IsReleased.joinToString(",")
+          it[isLimited] = student.IsLimited
         }
       }
     }
@@ -55,7 +60,15 @@ class StudentDAO : ArrayList<StudentDAOItem>(), BaseDAO{
       val studentID = item.getOrNull(Students.studentID)!!
       val name = item.getOrNull(Students.name)!!
       val birthday = item.getOrNull(Students.birthday)!!
-      dao.add(StudentDAOItem(birthday, studentID, name))
+      val starGrade = item.getOrNull(Students.starGrade) ?: 0
+      val devName = item.getOrNull(Students.devName) ?: ""
+      val pathName = item.getOrNull(Students.pathName) ?: ""
+      val isReleased = (item.getOrNull(Students.isReleased) ?: "")
+        .split(",")
+        .filter { it.isNotBlank() }
+        .map { it.toBooleanStrictOrNull() ?: false }
+      val isLimited = item.getOrNull(Students.isLimited) ?: 0
+      dao.add(StudentDAOItem(birthday, studentID, name, starGrade, devName, pathName, isReleased, isLimited))
     }
 
     return dao
@@ -71,7 +84,7 @@ data class StudentDAOItem(
 //    val ArtistName: String,
 //    val AttackPower1: Int,
 //    val AttackPower100: Int,
-    val BirthDay: String,
+    var BirthDay: String,
 //    val Birthday: String,
 //    val BulletType: String,
 //    val CharHeightImperial: String,
@@ -103,14 +116,20 @@ data class StudentDAOItem(
 //    val HealPower1: Int,
 //    val HealPower100: Int,
 //    val Hobby: String,
-    val Id: Int,
+    var Id: Int,
 //    val IndoorBattleAdaptation: Int,
 //    val IsLimited: Int,
 //    val IsReleased: List<Boolean>,
 //    val MaxHP1: Int,
 //    val MaxHP100: Int,
 //    val MemoryLobby: Int,
-    val Name: String,
+    var Name: String,
+    // 抽卡等新功能所需字段(SchaleDB students.min.json 解析, 本地 DB 未持久化, 网络同步失败时回落默认值)
+    var StarGrade: Int = 0,
+    var DevName: String = "",
+    var PathName: String = "",
+    var IsReleased: List<Boolean> = emptyList(),
+    var IsLimited: Int = 0,
 //    val OutdoorBattleAdaptation: Int,
 //    val PathName: String,
 //    val PersonalName: String,

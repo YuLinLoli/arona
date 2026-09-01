@@ -38,12 +38,16 @@ class StandaloneCommandDispatcher(
       CommandRegistration(setOf("/arona", "arona"), "查看 Arona 状态与帮助", AronaCommandHandler(this)),
       CommandRegistration(setOf("/帮助", "/help"), "查看独立模式帮助", HelpCommandHandler(this)),
       CommandRegistration(
-        setOf("/单抽", "gacha_one"), "单抽一次",
-        GuardedHandler(StandaloneServices.GACHA_SINGLE) { context -> StandaloneGacha.singleDraw(context) },
+        setOf("/单抽", "gacha_one"), "单抽一次, 可选服务器: /单抽 日服|国服|国际服",
+        ArgumentGuardedHandler(StandaloneServices.GACHA_SINGLE) { context, args -> StandaloneGacha.singleDraw(context, args) },
       ),
       CommandRegistration(
-        setOf("/十连", "gacha_multi"), "模拟十连",
-        GuardedHandler(StandaloneServices.GACHA_MULTI) { context -> StandaloneGacha.multiDraw(context) },
+        setOf("/十连", "gacha_multi"), "模拟十连, 可选服务器: /十连 日服|国服|国际服",
+        ArgumentGuardedHandler(StandaloneServices.GACHA_MULTI) { context, args -> StandaloneGacha.multiDraw(context, args) },
+      ),
+      CommandRegistration(
+        setOf("/抽卡服务器", "gacha_server"), "设置默认抽卡服务器",
+        ArgumentGuardedHandler(StandaloneServices.GACHA_SERVER) { context, args -> StandaloneGacha.setServer(context, args) },
       ),
       CommandRegistration(
         setOf("/狗叫", "gacha_dog"), "查看抽出pick的人",
@@ -168,7 +172,7 @@ class StandaloneCommandDispatcher(
     appendLine("/arona services - 查看 OneBot 连接")
     appendLine("/arona service list - 查看已注册服务")
     appendLine("/arona version - 查看版本信息")
-    appendLine("/单抽 /十连 /狗叫 /历史 - 抽卡")
+    appendLine("/单抽 /十连 /狗叫 /历史 /抽卡服务器 - 抽卡")
     appendLine("/游戏名 /谁是 /叫我 - 名字记录")
     appendLine("/塔罗牌 /活动 /攻略 - 娱乐与攻略查询")
     appendLine("/紧急停止 - 投票停止服务")

@@ -75,18 +75,22 @@ object GameKeeGachaPoolSource {
       ?: files.firstOrNull { it.name.startsWith("$id-") }
   }
 
-  /** 上传头图前先查缓存, 命中直接返回; 未命中则下载并保存为 <角色id>.<后缀>(复用 GameKeeUtil.gameKeeHeaders() 的请求头); 失败返回 null */
-  fun downloadCharacterImage(character: GachaCharacter, directory: File): File? {
-    findCachedImage(character.id, directory)?.let { return it }
-    val url = normalizeImageUrl(character.imageList)
-    if (url.isBlank()) return null
+  /** 上传头图前先查缓存, 命中直接返回; 未命中则下载卡池图(image_list)并保存为 <角色id>.<后缀>; 失败返回 null */
+  fun downloadCharacterImage(character: GachaCharacter, directory: File): File? =
+    downloadToCache(character.imageList, character.id, directory, "卡池图")
+
+  /** 通用下载: 先查 <id> 缓存, 未命中则按 url 下载并保存为 <角色id>.<后缀>(复用 GameKeeUtil.gameKeeHeaders() 的请求头) */
+  private fun downloadToCache(url: String, id: Long, directory: File, label: String): File? {
+    findCachedImage(id, directory)?.let { return it }
+    val normalized = normalizeImageUrl(url)
+    if (normalized.isBlank()) return null
     runCatching { directory.mkdirs() }
-    val suffix = url.substringBefore("?").substringAfterLast(".", "png")
+    val suffix = normalized.substringBefore("?").substringAfterLast(".", "png")
       .takeIf { it.length in 2..5 }?.let { ".$it" } ?: ".png"
-    val file = File(directory, "${character.id}$suffix")
+    val file = File(directory, "$id$suffix")
     if (file.isFile && file.length() > 0) return file
     return runCatching {
-      val response = NetworkUtil.request(Jsoup.connect(url))
+      val response = NetworkUtil.request(Jsoup.connect(normalized))
         .headers(GameKeeUtil.gameKeeHeaders(REFERER))
         .header("accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
         .ignoreContentType(true)
@@ -94,7 +98,7 @@ object GameKeeGachaPoolSource {
         .execute()
       response.bodyStream().use { input -> file.outputStream().use { output -> input.copyTo(output) } }
       if (file.isFile && file.length() > 0) file else null
-    }.onFailure { RuntimeLog.warning("下载卡池图失败 $url: ${it.message}") }.getOrNull()
+    }.onFailure { RuntimeLog.warning("下载${label}失败 $normalized: ${it.message}") }.getOrNull()
   }
 
   /** imageList 可能是 // 开头的协议相对地址 */
