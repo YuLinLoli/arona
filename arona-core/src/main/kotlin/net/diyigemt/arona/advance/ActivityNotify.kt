@@ -28,6 +28,7 @@ object ActivityNotify : AronaQuartzService {
   private const val ActivityNotifyDataInitKey = "init"
   private const val ActivityNotifyOneHour = "ActivityNotifyOneHour"
   private const val ActivityKey = "activity"
+  private const val ActivityNotifyBeforeHoursKey = "beforeHours"
   private const val NormalActivityNotifyBeforeHours = 1
   private const val DropActivityNotifyBeforeHours = 5
   /** 预警时间正负10分钟内视为立即发送窗口 */
@@ -104,15 +105,17 @@ object ActivityNotify : AronaQuartzService {
     /**
      * 活动结束预警任务
      *
-     * 在活动结束前1小时(双倍掉落提前5小时)向指定群组发送提醒消息。
+     * 在活动结束前 5 小时与 1 小时向指定群组发送提醒消息(除生日外的活动两次都会提醒)。
      *
      * @property context 任务执行上下文，包含活动数据和通知配置信息
      */
     override fun execute(context: JobExecutionContext?) {
-      val ac = context?.mergedJobDataMap?.get(ActivityKey) ?: return
+      val data = context?.mergedJobDataMap ?: return
+      val ac = data.get(ActivityKey) ?: return
       ac as List<Activity>
       if (ac.isEmpty()) return
-      sendAlert(ac, ac[0].serverLocale)
+      val beforeHours = data.getInt(ActivityNotifyBeforeHoursKey).takeIf { it > 0 } ?: NormalActivityNotifyBeforeHours
+      sendAlert(ac, ac[0].serverLocale, beforeHours)
     }
 
     override fun interrupt() {
@@ -120,12 +123,15 @@ object ActivityNotify : AronaQuartzService {
     }
   }
 
-  /** 为某个服务器的进行中活动安排结束预警(非双倍掉落提前1小时, 双倍掉落提前5小时) */
+  /** 为某个服务器的进行中活动安排结束预警: 除生日/维护外的活动在结束前5小时与1小时各提醒一次; 维护单独按1小时提醒 */
   private fun scheduleAlertsForServer(active: List<Activity>, locale: ServerLocale) {
-    val dropActivities = active.filter { isMidnightEndActivity(it) }
-    val normalActivities = active.filterNot { isMidnightEndActivity(it) }
-    scheduleAlertGroup(normalActivities, locale, NormalActivityNotifyBeforeHours)
-    scheduleAlertGroup(dropActivities, locale, DropActivityNotifyBeforeHours)
+    val maintenance = active.filter { isMaintenanceActivity(it) }
+    val normal = active.filterNot { isMaintenanceActivity(it) }
+    // 所有活动(掉落/总力战/大决战/卡池/普通活动等)结束前 5 小时与 1 小时各提醒一次
+    scheduleAlertGroup(normal, locale, DropActivityNotifyBeforeHours)
+    scheduleAlertGroup(normal, locale, NormalActivityNotifyBeforeHours)
+    // 维护保持单条"还有1小时"文案, 避免 5 小时提前量语义不符
+    scheduleAlertGroup(maintenance, locale, NormalActivityNotifyBeforeHours)
   }
 
   /** 按提醒时间分组处理: 正负10分钟内立即发送, 过时抛弃, 未来添加定时任务(去重) */
@@ -135,11 +141,12 @@ object ActivityNotify : AronaQuartzService {
     val window = AlertImmediateWindowMillis
     activities
       .filter { it.endTime > 0 }
+      .filterNot { it.type == ActivityType.BIRTHDAY } // 生日不预警
       .groupBy { it.endTime - beforeHours * 60L * 60L * 1000L }
       .forEach { (notifyAt, group) ->
         when {
           notifyAt < now - window -> Unit // 已过期, 抛弃
-          notifyAt <= now + window -> sendAlert(group, locale) // 正负10分钟内, 立即发送
+          notifyAt <= now + window -> sendAlert(group, locale, beforeHours) // 正负10分钟内, 立即发送
           else -> doInsert(group, Date(notifyAt), locale, beforeHours) // 未来, 添加定时任务
         }
       }
@@ -154,12 +161,12 @@ object ActivityNotify : AronaQuartzService {
       expected,
       key,
       ActivityNotifyOneHour,
-      mapOf(ActivityKey to activity)
+      mapOf(ActivityKey to activity, ActivityNotifyBeforeHoursKey to beforeHours)
     )
   }
 
   /** 发送活动结束预警(定时任务与立即发送共用) */
-  private fun sendAlert(activity: List<Activity>, locale: ServerLocale) {
+  private fun sendAlert(activity: List<Activity>, locale: ServerLocale, beforeHours: Int) {
     val ac = activity.toMutableList()
     // 提取维护活动信息
     val maintenance: Activity? = ac
@@ -179,7 +186,7 @@ object ActivityNotify : AronaQuartzService {
     }
     val serverName = locale.serverName
     if (maintenance != null) {
-      Arona.sendFilterGroupMessage("距离${serverName}维护还有1小时", targetGroup)
+      Arona.sendFilterGroupMessage("距离${serverName}维护还有${beforeHours}小时", targetGroup)
     }
     if (ac.isEmpty()) return
     val notifyPrefix = when (locale) {
@@ -191,22 +198,12 @@ object ActivityNotify : AronaQuartzService {
       .map { at -> "${at.content}\n" }
       .reduceOrNull { prv, cur -> prv + cur }
     val serverString = MiraiCode.deserializeMiraiCode(notifyPrefix)
-    // 计算活动结束时间
-    val endTime = if (isMidnightEndActivity(ac[0])) {
-      DropActivityNotifyBeforeHours
-    } else {
-      NormalActivityNotifyBeforeHours
-    }
     Arona.sendFilterGroupMessage(
       "${serverString}\n" +
         "$activityString" +
-        "将会在${endTime}小时后结束", targetGroup
+        "将会在${beforeHours}小时后结束", targetGroup
     )
   }
-
-  // 判断是不是双倍掉落(一般在3点结束,其实总力战也是,所以放一起了)
-  private fun isMidnightEndActivity(activity: Activity): Boolean =
-    activity.type in (ActivityType.N2_3..ActivityType.JOINT_EXERCISES)
 
   private fun isMaintenanceActivity(activity: Activity): Boolean = activity.type == ActivityType.MAINTENANCE
 

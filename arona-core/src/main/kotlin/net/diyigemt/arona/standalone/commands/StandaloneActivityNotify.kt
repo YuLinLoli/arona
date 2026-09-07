@@ -35,6 +35,7 @@ object StandaloneActivityNotify : AronaQuartzService {
   private const val ActivityNotifyInitKey = "init"
   private const val OneHourJobKey = "StandaloneActivityNotifyOneHour"
   private const val ActivityKey = "activity"
+  private const val ActivityNotifyBeforeHoursKey = "beforeHours"
   private const val NormalActivityNotifyBeforeHours = 1
   private const val DropActivityNotifyBeforeHours = 5
   private const val AlertImmediateWindowMillis = 10 * 60 * 1000L
@@ -46,13 +47,16 @@ object StandaloneActivityNotify : AronaQuartzService {
     }
   }
 
-  /** 活动结束预警任务: 在活动结束前1小时(双倍掉落提前5小时)发送提醒 */
+  /** 活动结束预警任务: 在活动结束前 5 小时与 1 小时发送提醒(除生日外的活动两次都会提醒) */
+  @Suppress("UNCHECKED_CAST")
   class ActivityNotifyOneHourJob : Job {
     override fun execute(context: JobExecutionContext?) {
-      val ac = context?.mergedJobDataMap?.get(ActivityKey) ?: return
+      val data = context?.mergedJobDataMap ?: return
+      val ac = data.get(ActivityKey) ?: return
       ac as List<Activity>
       if (ac.isEmpty()) return
-      StandaloneActivityNotify.sendAlert(ac, ac[0].serverLocale)
+      val beforeHours = data.getInt(ActivityNotifyBeforeHoursKey).takeIf { it > 0 } ?: NormalActivityNotifyBeforeHours
+      StandaloneActivityNotify.sendAlert(ac, ac[0].serverLocale, beforeHours)
     }
   }
 
@@ -125,12 +129,24 @@ object StandaloneActivityNotify : AronaQuartzService {
         }
       }.onFailure { RuntimeLog.warning("拉取${server.serverName}活动失败: ${it.message}") }.getOrNull()?.first
       if (active != null) {
-        val dropActivities = active.filter { isMidnightEndActivity(it) }
-        val normalActivities = active.filterNot { isMidnightEndActivity(it) }
-        scheduleAlertGroup(normalActivities, server, NormalActivityNotifyBeforeHours)
-        scheduleAlertGroup(dropActivities, server, DropActivityNotifyBeforeHours)
+        alertPlan(active).forEach { (activities, hours) -> scheduleAlertGroup(activities, server, hours) }
       }
     }
+  }
+
+  /**
+   * 计算某服务器活动的预警安排(供调度与测试):
+   * 除生日外的所有活动在结束前 5 小时与 1 小时各提醒一次; 维护单列只在 1 小时提醒(特殊文案)。
+   */
+  internal fun alertPlan(active: List<Activity>): List<Pair<List<Activity>, Int>> {
+    val alertable = active.filterNot { it.type == ActivityType.BIRTHDAY } // 生日不预警
+    val maintenance = alertable.filter { isMaintenanceActivity(it) }
+    val normal = alertable.filterNot { isMaintenanceActivity(it) }
+    return listOf(
+      normal to DropActivityNotifyBeforeHours,
+      normal to NormalActivityNotifyBeforeHours,
+      maintenance to NormalActivityNotifyBeforeHours,
+    )
   }
 
   /** 按提醒时间分组处理: 正负10分钟内立即发送, 过时抛弃, 未来添加定时任务(去重) */
@@ -144,11 +160,12 @@ object StandaloneActivityNotify : AronaQuartzService {
     val window = AlertImmediateWindowMillis
     activities
       .filter { it.endTime > 0 }
+      .filterNot { it.type == ActivityType.BIRTHDAY } // 生日不预警
       .groupBy { it.endTime - beforeHours * 60L * 60L * 1000L }
       .forEach { (notifyAt, group) ->
         when {
           notifyAt < now - window -> Unit // 已过期, 抛弃
-          notifyAt <= now + window -> sendAlert(group, locale) // 正负10分钟内, 立即发送
+          notifyAt <= now + window -> sendAlert(group, locale, beforeHours) // 正负10分钟内, 立即发送
           else -> insertAlert(group, Date(notifyAt), locale, beforeHours) // 未来, 添加定时任务
         }
       }
@@ -163,12 +180,12 @@ object StandaloneActivityNotify : AronaQuartzService {
       expected,
       key,
       OneHourJobKey,
-      mapOf(ActivityKey to activity)
+      mapOf(ActivityKey to activity, ActivityNotifyBeforeHoursKey to beforeHours)
     )
   }
 
   /** 发送活动结束预警(定时任务与立即发送共用), 发送目标取当前配置 */
-  private fun sendAlert(activity: List<Activity>, locale: ServerLocale) {
+  private fun sendAlert(activity: List<Activity>, locale: ServerLocale, beforeHours: Int) {
     val sender = RuntimeServices.messageSender ?: return
     val targets = resolveTargets(notifyConfig, RuntimeConfig.groups)
     if (targets.isEmpty()) return
@@ -186,23 +203,17 @@ object StandaloneActivityNotify : AronaQuartzService {
       }
     val serverName = locale.serverName
     if (maintenance != null) {
-      sendToTargets(sender, "距离${serverName}维护还有1小时", targets)
+      sendToTargets(sender, "距离${serverName}维护还有${beforeHours}小时", targets)
     }
     if (ac.isEmpty()) return
     val activityString = ac
       .map { at -> "${at.content}\n" }
       .reduceOrNull { prv, cur -> prv + cur }
-    // 计算活动结束时间
-    val endTime = if (isMidnightEndActivity(ac[0])) {
-      DropActivityNotifyBeforeHours
-    } else {
-      NormalActivityNotifyBeforeHours
-    }
     sendToTargets(
       sender,
       "${notifyConfig.notifyText}(${serverName})\n" +
         "$activityString" +
-        "将会在${endTime}小时后结束",
+        "将会在${beforeHours}小时后结束",
       targets
     )
   }
@@ -216,10 +227,6 @@ object StandaloneActivityNotify : AronaQuartzService {
       }
     }
   }
-
-  // 判断是不是双倍掉落(一般在3点结束,其实总力战也是,所以放一起了)
-  private fun isMidnightEndActivity(activity: Activity): Boolean =
-    activity.type in (ActivityType.N2_3..ActivityType.JOINT_EXERCISES)
 
   private fun isMaintenanceActivity(activity: Activity): Boolean = activity.type == ActivityType.MAINTENANCE
 

@@ -564,15 +564,37 @@ object ActivityUtil {
         source = source.replace("【" + server.serverName + "卡池" + "】", "Pick Up: ")
       }
 
-      source.contains("指名手配") -> activity.type = ActivityType.WANTED_DROP
-      source.contains("悬赏通缉") -> activity.type = ActivityType.WANTED_DROP
-      source.contains("学院交流") -> activity.type = ActivityType.COLLEGE_EXCHANGE_DROP
-      source.contains("特别依赖") || source.contains("特殊任务") -> activity.type = ActivityType.SPECIAL_DROP
-      source.contains("日程") || source.contains("课程表") -> activity.type = ActivityType.SCHEDULE
-      source.contains("总力战") -> activity.type = ActivityType.DECISIVE_BATTLE
-      source.contains("Normal") -> activity.type = ActivityType.N2_3
-      source.contains("Hard") -> activity.type = ActivityType.H2_3
-      source.contains("合同火力演习") || source.contains("综合战术考试") -> activity.type = ActivityType.JOINT_EXERCISES
+      source.contains("指名手配") || source.contains("悬赏通缉") || source.contains("懸賞通緝") ->
+        activity.type = ActivityType.WANTED_DROP
+      source.contains("学院交流") || source.contains("学園交流会") || source.contains("學院交流會") ->
+        activity.type = ActivityType.COLLEGE_EXCHANGE_DROP
+      source.contains("特别依赖") || source.contains("特殊任务") || source.contains("特别委托") ||
+        source.contains("特別依賴") || source.contains("特別委託") || source.contains("特殊依賴") ->
+        activity.type = ActivityType.SPECIAL_DROP
+      source.contains("日程") || source.contains("课程表") || source.contains("課程表") || source.contains("スケジュール") ->
+        activity.type = ActivityType.SCHEDULE
+      source.contains("合同火力演习") || source.contains("合同火力演習") ||
+        source.contains("综合战术考试") || source.contains("綜合戰術考試") ||
+        source.contains("综合战术测试") || source.contains("綜合戰術測驗") ->
+        activity.type = ActivityType.JOINT_EXERCISES
+      // 总力战/大决战/制约解除决战/无限制决战等决战类, 与总力战一样按结束前5小时预警
+      source.contains("总力战") || source.contains("総力戦") || source.contains("總力戰") ||
+        source.contains("大决战") || source.contains("大決戰") ||
+        source.contains("无限制决战") || source.contains("無限制決戰") ||
+        source.contains("制约解除决战") || source.contains("制約解除決戰") ||
+        source.contains("决战") || source.contains("決戰") ->
+        activity.type = ActivityType.DECISIVE_BATTLE
+      source.contains("Normal") || source.contains("普通难度") || source.contains("普通任務") || source.contains("普通任务") ->
+        activity.type = ActivityType.N2_3
+      source.contains("Hard") || source.contains("困难难度") || source.contains("困难任务") ||
+        source.contains("困難難度") || source.contains("困難任務") ->
+        activity.type = ActivityType.H2_3
+      // 兜底: 未带 Normal/Hard 字样的纯掉落2倍(如"经验值2倍")也归掉落类, 按结束前5小时预警
+      source.contains("掉落量2倍") || source.contains("掉落2倍") ||
+        source.contains("獎勵2倍") || source.contains("奖励2倍") ||
+        source.contains("經驗值2倍") || source.contains("经验值2倍") ||
+        source.contains("報酬2倍") || source.contains("报酬2倍") ->
+        activity.type = ActivityType.N2_3
     }
     activity.content = source
     return activity
